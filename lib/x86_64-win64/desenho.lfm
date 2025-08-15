@@ -1,0 +1,72 @@
+object Form1: TForm1
+  Left = 250
+  Height = 576
+  Top = 250
+  Width = 1574
+  Caption = 'Form1'
+  ClientHeight = 576
+  ClientWidth = 1574
+  DesignTimePPI = 120
+  Menu = MainMenu1
+  OnCreate = FormCreate
+  object Image1: TImage
+    Left = 320
+    Height = 564
+    Top = 4
+    Width = 1012
+    OnClick = Image1Click
+    OnMouseDown = Image1MouseDown
+    OnMouseMove = Image1MouseMove
+    OnMouseUp = Image1MouseUp
+    Transparent = True
+  end
+  object Edit1: TEdit
+    Left = 65
+    Height = 28
+    Top = 169
+    Width = 100
+    TabOrder = 0
+  end
+  object Edit2: TEdit
+    Left = 65
+    Height = 28
+    Top = 232
+    Width = 100
+    TabOrder = 1
+  end
+  object MainMenu1: TMainMenu
+    Left = 1397
+    Top = 106
+    object MenuItem1: TMenuItem
+      Caption = 'Arquivo'
+      OnClick = MenuItem1Click
+    end
+    object MenuItem2: TMenuItem
+      Caption = 'Operações'
+      object MenuItem3: TMenuItem
+        Caption = 'Desenhar pixels'
+        OnClick = MenuItem3Click
+      end
+      object MenuItem4: TMenuItem
+        Caption = 'Desenhar linhas'
+        OnClick = MenuItem4Click
+      end
+      object MenuItem5: TMenuItem
+        Caption = 'Apagar'
+        OnClick = MenuItem5Click
+      end
+      object MenuItem6: TMenuItem
+        Caption = 'Desenhar Circunferêcia'
+        OnClick = MenuItem6Click
+      end
+      object MenuItem7: TMenuItem
+        Caption = 'Desenhar Circunferência (sin e cos)'
+        OnClick = MenuItem7Click
+      end
+      object MenuItem8: TMenuItem
+        Caption = 'Desenhar Circunferência (graus)'
+        OnClick = MenuItem8Click
+      end
+    end
+  end
+end

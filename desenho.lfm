@@ -8,7 +8,7 @@ object Form1: TForm1
   ClientWidth = 1574
   DesignTimePPI = 120
   Menu = MainMenu1
-  LCLVersion = '3.2.0.0'
+  OnCreate = FormCreate
   object Image1: TImage
     Left = 320
     Height = 564
@@ -18,6 +18,7 @@ object Form1: TForm1
     OnMouseDown = Image1MouseDown
     OnMouseMove = Image1MouseMove
     OnMouseUp = Image1MouseUp
+    Transparent = True
   end
   object Edit1: TEdit
     Left = 65
@@ -53,6 +54,18 @@ object Form1: TForm1
       object MenuItem5: TMenuItem
         Caption = 'Apagar'
         OnClick = MenuItem5Click
+      end
+      object MenuItem6: TMenuItem
+        Caption = 'Desenhar Circunferêcia'
+        OnClick = MenuItem6Click
+      end
+      object MenuItem7: TMenuItem
+        Caption = 'Desenhar Circunferência (sin e cos)'
+        OnClick = MenuItem7Click
+      end
+      object MenuItem8: TMenuItem
+        Caption = 'Desenhar Circunferência (graus)'
+        OnClick = MenuItem8Click
       end
     end
   end
