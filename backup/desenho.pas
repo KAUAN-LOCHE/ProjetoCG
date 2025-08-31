@@ -27,9 +27,11 @@ type
     CircunferenciaParametrica2: TMenuItem;
     Circunferencia3: TMenuItem;
     MenuItem6: TMenuItem;
+    MenuItem7: TMenuItem;
     procedure Circunferencia1Click(Sender: TObject);
     procedure Circunferencia3Click(Sender: TObject);
     procedure CircunferenciaParametrica2Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure Image1MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
@@ -43,6 +45,7 @@ type
     procedure MenuItem5Click(Sender: TObject);
     procedure CircunferenciasAula07Click(Sender: TObject);
     procedure MenuItem6Click(Sender: TObject);
+    procedure MenuItem7Click(Sender: TObject);
   private
 
   public
@@ -84,7 +87,7 @@ begin
      y1:=Y;
   end;
 
-  if ((op = 3) or (op = 4) or (op = 5) or (op = 6)) then
+  if ((op = 3) or (op = 4) or (op = 5) or (op = 6) or (op = 7)) then
   begin
      desenhar := true;
      Xc := X;
@@ -112,6 +115,11 @@ begin
   op := 4;
 end;
 
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+
+end;
+
 procedure TForm1.Image1MouseMove(Sender: TObject; Shift: TShiftState; X,
   Y: Integer);
 begin
@@ -120,12 +128,14 @@ begin
   Edit2.Text := IntToStr(Y);
 end;
 
+//Utilizado na op 7
+
 procedure TForm1.Image1MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   m: Double;
   x2, xi, yi, i: Integer;
-  val, xii, yii, xn: Double;
+  val, xii, yii, xn, h, dE, dSE: Double;
   a, cos1, sen1: Double;
   dx, dy, incX, incY, err, e2 : Integer;
 begin
@@ -225,6 +235,7 @@ begin
     end;
   end;
 
+  //Implementação da Wikipedia
   if (op = 6) then
   begin
     X2 := X;
@@ -259,6 +270,57 @@ begin
     end;
   end;
 
+  if (op = 7) then
+begin
+  X2 := X;
+  Y2 := Y;
+
+  Raio := Round(sqrt((Xc - X2)*(Xc - X2) + (Yc - Y2)*(Yc - Y2)));
+
+  xii := 0;
+  yii := Raio;
+
+  h   := 1 - Raio;
+  dE  := 3;
+  dSE := -2 * Raio + 5;
+
+  Image1.Canvas.Pixels[Xc + Round(xii), Yc + Round(yii)] := clRed;
+  Image1.Canvas.Pixels[Xc - Round(xii), Yc + Round(yii)] := clRed;
+  Image1.Canvas.Pixels[Xc + Round(xii), Yc - Round(yii)] := clRed;
+  Image1.Canvas.Pixels[Xc - Round(xii), Yc - Round(yii)] := clRed;
+  Image1.Canvas.Pixels[Xc + Round(yii), Yc + Round(xii)] := clRed;
+  Image1.Canvas.Pixels[Xc - Round(yii), Yc + Round(xii)] := clRed;
+  Image1.Canvas.Pixels[Xc + Round(yii), Yc - Round(xii)] := clRed;
+  Image1.Canvas.Pixels[Xc - Round(yii), Yc - Round(xii)] := clRed;
+
+  while xii < yii do
+  begin
+    if h < 0 then
+    begin
+      h   := h + dE;
+      dE  := dE + 2;
+      dSE := dSE + 2;
+    end
+    else
+    begin
+      h   := h + dSE;
+      dE  := dE + 2;
+      dSE := dSE + 4;
+      Dec(yii);
+    end;
+
+    Inc(xii);
+    Image1.Canvas.Pixels[Xc + Round(xii), Yc + Round(yii)] := clRed;
+    Image1.Canvas.Pixels[Xc - Round(xii), Yc + Round(yii)] := clRed;
+    Image1.Canvas.Pixels[Xc + Round(xii), Yc - Round(yii)] := clRed;
+    Image1.Canvas.Pixels[Xc - Round(xii), Yc - Round(yii)] := clRed;
+    Image1.Canvas.Pixels[Xc + Round(yii), Yc + Round(xii)] := clRed;
+    Image1.Canvas.Pixels[Xc - Round(yii), Yc + Round(xii)] := clRed;
+    Image1.Canvas.Pixels[Xc + Round(yii), Yc - Round(xii)] := clRed;
+    Image1.Canvas.Pixels[Xc - Round(yii), Yc - Round(xii)] := clRed;
+  end;
+end;
+
 end;
 
 
@@ -286,7 +348,12 @@ end;
 
 procedure TForm1.MenuItem6Click(Sender: TObject);
 begin
-     op := 6;
+  op := 6;
+end;
+
+procedure TForm1.MenuItem7Click(Sender: TObject);
+begin
+  op := 7;
 end;
 
 
