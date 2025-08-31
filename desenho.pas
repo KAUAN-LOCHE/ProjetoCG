@@ -22,6 +22,13 @@ type
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
     MenuItem5: TMenuItem;
+    CircunferenciasAula07: TMenuItem;
+    Circunferencia1: TMenuItem;
+    CircunferenciaParametrica2: TMenuItem;
+    Circunferencia3: TMenuItem;
+    procedure Circunferencia1Click(Sender: TObject);
+    procedure Circunferencia3Click(Sender: TObject);
+    procedure CircunferenciaParametrica2Click(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure Image1MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
@@ -33,6 +40,7 @@ type
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
+    procedure CircunferenciasAula07Click(Sender: TObject);
   private
 
   public
@@ -45,6 +53,8 @@ var
   desenhar : boolean;
   x1:integer;
   y1:integer;
+  Xc, Yc, X2, Y2: Integer;
+  Raio: double;
 
 implementation
 
@@ -71,11 +81,33 @@ begin
      x1:= X;
      y1:=Y;
   end;
+
+  if ((op = 3) or (op = 4) or (op = 5)) then
+  begin
+     desenhar := true;
+     Xc := X;
+     Yc := Y;
+  end;
 end;
 
 procedure TForm1.Image1Click(Sender: TObject);
 begin
 
+end;
+
+procedure TForm1.Circunferencia1Click(Sender: TObject);
+begin
+  op := 3;
+end;
+
+procedure TForm1.Circunferencia3Click(Sender: TObject);
+begin
+  op := 5;
+end;
+
+procedure TForm1.CircunferenciaParametrica2Click(Sender: TObject);
+begin
+  op := 4;
 end;
 
 procedure TForm1.Image1MouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -90,11 +122,14 @@ procedure TForm1.Image1MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   m: Double;
-  x2, xi, yi: Integer;
+  x2, xi, yi, i: Integer;
+  val, xii, yii, xn: Double;
+  a, cos1, sen1: Double;
 begin
   if (op = 1) then
-    desenhar := False
-  else if (op = 2) then
+    desenhar := False;
+
+  if (op = 2) then
   begin
     x2 := X;
 
@@ -129,6 +164,63 @@ begin
 
     desenhar := False;
   end;
+
+  if (op = 3) then
+  begin
+    X2 := X;
+    Y2 := Y;
+
+    Raio := sqrt((Xc - X2)*(Xc - X2) + (Yc - Y2)*(Yc - Y2));
+
+    xii := -Raio;
+    while xii <= Raio do
+    begin
+      val := Raio*Raio - xii*xii;
+      if val < 0 then
+        val := 0;
+      yii := sqrt(val);
+
+      Image1.Canvas.Pixels[Xc + Round(xii), Yc + Round(yii)] := clRed;
+      Image1.Canvas.Pixels[Xc + Round(xii), Yc - Round(yii)] := clRed;
+
+      xii := xii + 0.01;
+    end;
+  end;
+
+  if (op = 4) then
+  begin
+    X2 := X;
+    Y2 := Y;
+    a := 0;
+    Raio := sqrt((Xc-X2)*(Xc-X2)+(Yc-Y2)*(Yc-Y2));
+    while a < 6.28 do
+    begin
+      xi := Round(Raio * cos(a));
+      yi := Round(Raio * sin(a));
+      Image1.Canvas.Pixels[Xc+xi,Yc+yi] := clRed;
+      a := a + 0.01;
+    end;
+  end;
+
+  if (op = 5) then
+  begin
+    X2 := X;
+    Y2 := Y;
+    Raio := sqrt((Xc - X2)*(Xc - X2) + (Yc - Y2)*(Yc - Y2));
+
+    xii := Raio;
+    yii := 0;
+    cos1 := cos(Pi / 180);
+    sen1 := sin(Pi / 180);
+
+    for i := 1 to 360 do
+    begin
+      xn := xii * cos1 - yii * sen1;
+      yii := xii * sen1 + yii * cos1;
+      xii := xn;
+      Image1.Canvas.Pixels[Xc+Round(xii),Yc+Round(yii)] := clRed;
+    end;
+  end;
 end;
 
 
@@ -147,6 +239,11 @@ begin
   // Preenche toda a imagem de preto de forma eficiente
   Image1.Canvas.Brush.Color := clBlack;
   Image1.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
+end;
+
+procedure TForm1.CircunferenciasAula07Click(Sender: TObject);
+begin
+
 end;
 
 
