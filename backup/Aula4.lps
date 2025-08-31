@@ -12,7 +12,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="31"/>
+        <UsageCount Value="32"/>
       </Unit>
       <Unit>
         <Filename Value="desenho.pas"/>
@@ -21,9 +21,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="187"/>
-        <CursorPos X="18" Y="212"/>
-        <UsageCount Value="31"/>
+        <TopLine Value="227"/>
+        <CursorPos X="3" Y="261"/>
+        <UsageCount Value="32"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit>
@@ -32,7 +32,7 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="FormulaLinear"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="31"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -45,22 +45,9 @@
         <TopLine Value="57"/>
         <CursorPos X="25" Y="98"/>
         <UsageCount Value="12"/>
-        <LoadedDesigner Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="desenho.pas"/>
-        <Caret Line="91" Column="54" TopLine="45"/>
-      </Position>
-      <Position>
-        <Filename Value="desenho.pas"/>
-        <Caret Line="92" Column="54" TopLine="46"/>
-      </Position>
-      <Position>
-        <Filename Value="desenho.pas"/>
-        <Caret Line="93" Column="54" TopLine="47"/>
-      </Position>
       <Position>
         <Filename Value="desenho.pas"/>
         <Caret Line="94" Column="54" TopLine="48"/>
@@ -168,6 +155,18 @@
       <Position>
         <Filename Value="desenho.pas"/>
         <Caret Line="212" Column="25" TopLine="187"/>
+      </Position>
+      <Position>
+        <Filename Value="desenho.pas"/>
+        <Caret Line="208" Column="13" TopLine="185"/>
+      </Position>
+      <Position>
+        <Filename Value="desenho.pas"/>
+        <Caret Line="210" Column="13" TopLine="187"/>
+      </Position>
+      <Position>
+        <Filename Value="desenho.pas"/>
+        <Caret Line="165" Column="92" TopLine="141"/>
       </Position>
     </JumpHistory>
     <RunParams>

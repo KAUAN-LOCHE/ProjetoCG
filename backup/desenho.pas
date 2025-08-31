@@ -26,6 +26,7 @@ type
     Circunferencia1: TMenuItem;
     CircunferenciaParametrica2: TMenuItem;
     Circunferencia3: TMenuItem;
+    MenuItem6: TMenuItem;
     procedure Circunferencia1Click(Sender: TObject);
     procedure Circunferencia3Click(Sender: TObject);
     procedure CircunferenciaParametrica2Click(Sender: TObject);
@@ -41,6 +42,7 @@ type
     procedure MenuItem4Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
     procedure CircunferenciasAula07Click(Sender: TObject);
+    procedure MenuItem6Click(Sender: TObject);
   private
 
   public
@@ -82,7 +84,7 @@ begin
      y1:=Y;
   end;
 
-  if ((op = 3) or (op = 4) or (op = 5)) then
+  if ((op = 3) or (op = 4) or (op = 5) or (op = 6)) then
   begin
      desenhar := true;
      Xc := X;
@@ -125,6 +127,7 @@ var
   x2, xi, yi, i: Integer;
   val, xii, yii, xn: Double;
   a, cos1, sen1: Double;
+  dx, dy, incX, incY, err, e2 : Integer;
 begin
   if (op = 1) then
     desenhar := False;
@@ -204,12 +207,14 @@ begin
 
   if (op = 5) then
   begin
+    X2 := X;
+    Y2 := Y;
     Raio := sqrt((Xc - X2)*(Xc - X2) + (Yc - Y2)*(Yc - Y2));
 
     xii := Raio;
     yii := 0;
-    cos1 := cos(1);
-    sen1 := sin(1);
+    cos1 := cos(Pi / 180);
+    sen1 := sin(Pi / 180);
 
     for i := 1 to 360 do
     begin
@@ -219,6 +224,41 @@ begin
       Image1.Canvas.Pixels[Xc+Round(xii),Yc+Round(yii)] := clRed;
     end;
   end;
+
+  if (op = 6) then
+  begin
+    X2 := X;
+    Y2 := Y;
+
+    dx := Abs(X2 - Xc);
+    dy := Abs(Y2 - Yc);
+
+    if Xc < X2 then incX := 1 else incX := -1;
+    if Yc < Y2 then incY := 1 else incY := -1;
+
+    err := dx - dy;
+
+    while True do
+    begin
+      Image1.Canvas.Pixels[Xc, Yc] := clRed;
+
+      if (xC = X2) and (Yc = Y2) then Break;
+
+      e2 := 2 * err;
+      if e2 > -dy then
+      begin
+        err := err - dy;
+        xC := xC + incX;
+      end;
+
+      if e2 < dx then
+      begin
+        err := err + dx;
+        yC := yC + incY;
+      end;
+    end;
+  end;
+
 end;
 
 
@@ -242,6 +282,11 @@ end;
 procedure TForm1.CircunferenciasAula07Click(Sender: TObject);
 begin
 
+end;
+
+procedure TForm1.MenuItem6Click(Sender: TObject);
+begin
+     op := 6;
 end;
 
 

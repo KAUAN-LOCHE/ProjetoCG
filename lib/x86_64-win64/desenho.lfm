@@ -7,7 +7,6 @@ object Form1: TForm1
   ClientHeight = 461
   ClientWidth = 1259
   Menu = MainMenu1
-  LCLVersion = '4.2.0.0'
   object Image1: TImage
     Left = 256
     Height = 451
@@ -68,6 +67,10 @@ object Form1: TForm1
           Caption = 'Circunferencia3'
           OnClick = Circunferencia3Click
         end
+      end
+      object MenuItem6: TMenuItem
+        Caption = 'BresenhamTodosOctantesAula06'
+        OnClick = MenuItem6Click
       end
     end
   end
