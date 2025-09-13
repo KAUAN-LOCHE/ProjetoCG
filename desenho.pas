@@ -15,6 +15,8 @@ type
   TForm1 = class(TForm)
     Edit1: TEdit;
     Edit2: TEdit;
+    Edit3: TEdit;
+    Edit4: TEdit;
     Image1: TImage;
     MainMenu1: TMainMenu;
     MenuItem1: TMenuItem;
@@ -25,6 +27,7 @@ type
     MenuItem6: TMenuItem;
     MenuItem7: TMenuItem;
     MenuItem8: TMenuItem;
+    MenuItem9: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure Image1MouseDown(Sender: TObject; Button: TMouseButton;
@@ -40,6 +43,7 @@ type
     procedure MenuItem6Click(Sender: TObject);
     procedure MenuItem7Click(Sender: TObject);
     procedure MenuItem8Click(Sender: TObject);
+    procedure MenuItem9Click(Sender: TObject);
   private
 
   public
@@ -50,8 +54,9 @@ var
   Form1: TForm1;
   op : integer;
   desenhar : boolean;
-  x1:integer;
+  x1,xa, ya, xb, yb, x2,y2:integer;
   y1:integer;
+  contador:integer;
 
 implementation
 
@@ -72,12 +77,12 @@ begin
      desenhar := true;
   end;
 
-  if (op = 2) or (op = 3) or (op = 4) or (op=5) then
+  if (op = 2) or (op = 3) or (op = 4) or (op=5) or (op = 7) then
   begin
      desenhar := true;
      x1:= X;
      y1:=Y;
-  end
+  end;
 
 end;
 
@@ -88,6 +93,102 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+
+end;
+procedure LinhaJanelaVisualizacao();
+var
+  m, x3, y3, xi, yi, p1, p2, p3, p4, q1, q2, q3, q4, delx, dely, i:integer;
+  r1, r2, r3, r4, maxx, minn: real;
+  us : array [0 .. 4] of Real;
+begin
+  delx := (x2-x1);
+  dely := (y2-y1);
+  p1 := -delx;
+  p2 := delx;
+  p3 := -dely;
+  p4:=dely;;
+  q1 := x1-min(xa,xb);
+  q2 := max(xa,xb) - x1;
+  q3 := y1 - min(ya,yb);
+  q4 := max(ya,yb) - y1;
+
+  r1 := q1/p1;
+  r2 := q2/p2;
+  r3 := q3/p3;
+  r4 := q4/p4;
+  i:=1;
+  us[0] := 0;
+
+  if (p1 < 0) then
+  begin
+     us[i] := r1;
+     i := i + 1;
+  end;
+
+  if (p2 < 0) then
+  begin
+     us[i] := r2;
+     i := i+1;
+  end;
+
+  if (p3 < 0) then
+  begin
+     us[i]:= r3;
+     i := i + 1;
+  end;
+
+  if(p4 < 0) then
+  begin
+     us[i] := r4;
+     i := i + 1;
+  end;
+  maxx:=-99999;
+  for m := 0 to (i-1) do
+  begin
+    if(us[m] > maxx) then maxx := us[m];
+  end;
+
+   us[0] := 1;
+   i:=1;
+
+  if (p1 > 0) then
+  begin
+     us[i] := r1;
+     i := i + 1;
+  end;
+
+  if (p2 > 0) then
+  begin
+     us[i] := r2;
+     i := i+1;
+  end;
+
+  if (p3 > 0) then
+  begin
+     us[i]:= r3;
+     i := i + 1;
+  end;
+
+  if(p4 > 0) then
+  begin
+     us[i] := r4;
+     i := i + 1;
+  end;
+  minn:=99999;
+  for m := 0 to (i-1) do
+  begin
+    if(us[m] > minn) then minn := us[m];
+  end;
+
+  xi := round(x1 + maxx*delx);
+  yi := round (y1 + maxx * dely);
+
+  x3 := round(x1 + delx*minn);
+  y3 := round(y1 + minn*dely);
+
+
+
+
 
 end;
 
@@ -103,20 +204,28 @@ procedure TForm1.Image1MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   m: Double;
-  x2, y2, xi, yi, R: Integer;
+  x3, y3, xi, yi, R: Integer;
   i, cos1, sin1: Double;
+  n:integer;
+  p1, p2, p3, p4, q1, q2, q3, q4, delx, dely,s:integer;
+  r1, r2, r3, r4, maxx, minn: real;
+  us : array [0 .. 4] of Real;
+  janelas : Byte;
+
+
 
 begin
   if (op = 1) then
     desenhar := False
   else if (op = 2) then
   begin
-    x2 := X;
+
+    x3 := X;
 
     if (Y = y1) then
     begin
       // reta horizontal
-      for xi := Min(x1, x2) to Max(x1, x2) do
+      for xi := Min(x1, x3) to Max(x1, x3) do
         Image1.Canvas.Pixels[xi, y1] := clRed;
     end
     else if (Abs(X - x1) < Abs(Y - y1)) then
@@ -135,7 +244,7 @@ begin
       m := -(Y - y1) / (X - x1);
 
 
-      for xi := Min(x1, x2) to Max(x1, x2) do
+      for xi := Min(x1, x3) to Max(x1, x3) do
       begin
         yi := Round(y1 - m * (xi - x1));
         Image1.Canvas.Pixels[xi, yi] := clRed;
@@ -146,9 +255,9 @@ begin
   end
   else if(op = 3) then
   begin
-    x2:= X;
-    y2:= Y;
-    R:= round(sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)));
+    x3:= X;
+    y3:= Y;
+    R:= round(sqrt((x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)));
     i:= -R;
     while (i <= R) do
     begin
@@ -161,9 +270,9 @@ begin
   end
   else if (op = 4) then
   begin
-    x2:= X;
-    y2:= Y;
-    R:= round(sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)));
+    x3:= X;
+    y3:= Y;
+    R:= round(sqrt((x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)));
     i := 0;
     while(i < 6.28) do
     begin
@@ -179,9 +288,9 @@ begin
   end
   else if(op = 5) then
   begin
-    x2:=X;
-    y2:=Y;
-    R:= round(sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)));
+    x3:=X;
+    y3:=Y;
+    R:= round(sqrt((x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)));
     xi := R;
     yi := 0;
     cos1 := cos(1);
@@ -196,9 +305,47 @@ begin
       Image1.Canvas.Pixels[x1+xi, y1+yi] := clRed;
       i:= i+1;
     end;
-  end;
-end;
+  end
+  else if(op = 6) then
+  begin
+    if (contador = 0 ) then
+    begin
+      xa := X;
+      ya := Y;
+      Edit3.Text := IntToStr(xi);
+      Edit4.Text := IntToStr(yi);
+      contador := contador + 1;
+    end
+    else
+    begin
+      xb := X;
+      yb := Y;
+      contador := 0;
+      for n:= (min(xa,xb)) to max(xa,xb) do
+      begin
+         Image1.Canvas.Pixels[n,min(ya,yb)] := clred;
+         Image1.Canvas.Pixels[n,max(ya,yb)] := clred;
+      end;
 
+      for n:=min(ya,yb) to max(ya,yb) do
+      begin
+          Image1.Canvas.Pixels[min(xa,xb),n] := clred;
+          Image1.Canvas.Pixels[max(xa,xb),n] := clred;
+      end;
+      op:=7;
+    end;
+  end
+  else if(op = 7) then
+  begin
+    janelas := 0;
+    x2:=X;
+    y2:=Y;
+
+
+
+  end;
+
+end;
 
 procedure TForm1.MenuItem3Click(Sender: TObject);
 begin
@@ -230,6 +377,11 @@ end;
 procedure TForm1.MenuItem8Click(Sender: TObject);
 begin
   op:=5;
+end;
+
+procedure TForm1.MenuItem9Click(Sender: TObject);
+begin
+  op:=6;
 end;
 
 
