@@ -12,7 +12,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="38"/>
+        <UsageCount Value="62"/>
       </Unit>
       <Unit>
         <Filename Value="desenho.pas"/>
@@ -21,9 +21,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="318"/>
-        <CursorPos X="96" Y="334"/>
-        <UsageCount Value="38"/>
+        <TopLine Value="1280"/>
+        <CursorPos X="24" Y="1318"/>
+        <UsageCount Value="62"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit>
@@ -32,14 +32,14 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="FormulaLinear"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="37"/>
+        <UsageCount Value="61"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="ProjetoCG\desenho.lfm"/>
         <HasResources Value="True"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit>
       <Unit>
@@ -48,129 +48,129 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="110" Column="14" TopLine="97"/>
+        <Caret Line="18" Column="70"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="109" Column="14" TopLine="97"/>
+        <Caret Line="427" Column="90" TopLine="413"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="111" Column="25" TopLine="97"/>
+        <Caret Line="394" Column="7" TopLine="364"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="110" Column="11" TopLine="97"/>
+        <Caret Line="713" Column="117" TopLine="683"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="109" Column="14" TopLine="96"/>
+        <Caret Line="408" Column="33" TopLine="378"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="110" Column="23" TopLine="97"/>
+        <Caret Line="770" Column="6" TopLine="188"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="109" Column="12" TopLine="97"/>
+        <Caret Line="155" Column="10" TopLine="125"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="110" Column="3" TopLine="97"/>
+        <Caret Line="164" Column="35" TopLine="123"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="109" Column="3" TopLine="98"/>
+        <Caret Line="475" Column="36" TopLine="448"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="100" Column="77" TopLine="97"/>
+        <Caret Line="480" Column="7" TopLine="457"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="145" Column="13" TopLine="132"/>
+        <Caret Line="484" Column="27" TopLine="458"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="148" Column="31" TopLine="132"/>
+        <Caret Line="799" TopLine="773"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="183" Column="31" TopLine="171"/>
+        <Caret Line="800" Column="7" TopLine="773"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="182" Column="15" TopLine="169"/>
+        <Caret Line="504" Column="30" TopLine="474"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="192" Column="3" TopLine="172"/>
+        <Caret Line="798" TopLine="770"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="212" Column="41" TopLine="199"/>
+        <Caret Line="1491" Column="13" TopLine="1459"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="415" Column="42" TopLine="404"/>
+        <Caret Line="1170" Column="51" TopLine="1132"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="423" Column="38" TopLine="412"/>
+        <Caret Line="1124" Column="18" TopLine="1106"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="429" Column="39" TopLine="416"/>
+        <Caret Line="154" Column="162" TopLine="133"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="462" Column="9" TopLine="437"/>
+        <Caret Line="90" Column="64" TopLine="64"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="461" Column="11" TopLine="453"/>
+        <Caret Line="159" Column="83" TopLine="135"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="430" Column="5" TopLine="419"/>
+        <Caret Line="12" Column="42"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="438" Column="17" TopLine="430"/>
+        <Caret Line="156" Column="45" TopLine="141"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="430" Column="136" TopLine="417"/>
+        <Caret Line="212" Column="49" TopLine="135"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="358" Column="13" TopLine="344"/>
+        <Caret Line="171" Column="3" TopLine="1884"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="448" Column="254" TopLine="443"/>
+        <Caret Line="399" Column="63" TopLine="375"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="335" Column="41" TopLine="329"/>
+        <Caret Line="402" Column="63" TopLine="362"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="340" Column="11" TopLine="336"/>
+        <Caret Line="171" Column="12" TopLine="136"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="343" Column="37" TopLine="335"/>
+        <Caret Line="884" Column="22" TopLine="863"/>
       </Position>
       <Position>
         <Filename Value="desenho.pas"/>
-        <Caret Line="351" Column="88" TopLine="317"/>
+        <Caret Line="1268" Column="14" TopLine="1249"/>
       </Position>
     </JumpHistory>
     <RunParams>
