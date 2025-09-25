@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, Menus,
-  StdCtrls, Math;
+  StdCtrls, ExtDlgs, Math;
 
 type
   TMatriz = array of array of Double;
@@ -50,6 +50,10 @@ type
     MainMenu1: TMainMenu;
     MenuItem1: TMenuItem;
     MenuItem10: TMenuItem;
+    MenuItem11: TMenuItem;
+    MenuItem12: TMenuItem;
+    MenuItem13: TMenuItem;
+    MenuItem14: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
@@ -58,6 +62,7 @@ type
     MenuItem7: TMenuItem;
     MenuItem8: TMenuItem;
     MenuItem9: TMenuItem;
+    OpenPictureDialog1: TOpenPictureDialog;
     RadioButton1: TRadioButton;
     RadioButton2: TRadioButton;
     RadioButton3: TRadioButton;
@@ -78,6 +83,10 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure Label1Click(Sender: TObject);
     procedure MenuItem10Click(Sender: TObject);
+    procedure MenuItem12Click(Sender: TObject);
+    procedure MenuItem13Click(Sender: TObject);
+    procedure MenuItem14Click(Sender: TObject);
+    procedure MenuItem15Click(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
@@ -91,6 +100,12 @@ type
     procedure MultiplicarMatrizes(const Matriz1, Matriz2: TMatriz; var MResultado: TMatriz);
     procedure ProjecaoOrtografica(const MC, MH: TMatriz; const canvasCenterX, CanvasCenterY: Integer);
     procedure RadioButton6Change(Sender: TObject);
+    procedure InverterCor(var Cor: TColor);
+    procedure EdgeFill(Bitmap: TBitmap);
+    procedure seed_fill(x, y: Integer; Cor: TColor);
+    procedure seed_fillN8(x, y: Integer; Cor: TColor);
+    procedure SortIntArray(var Arr: array of Integer);
+    procedure desenhoAula16();
   private
 
   public
@@ -106,6 +121,7 @@ var
   y1:integer;
   contador:integer;
   flagOpcao8 : boolean;
+  xSeed, ySeed: integer;
 
 implementation
 
@@ -133,11 +149,15 @@ begin
      y1:=Y;
   end;
 
+  if (op = 8) then
+  begin
+     xSeed := X;
+     ySeed := Y;
+  end;
 end;
 
 procedure TForm1.Image1Click(Sender: TObject);
 begin
-
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -1444,6 +1464,7 @@ var
   r1, r2, r3, r4, maxx, minn: real;
   us : array [0 .. 4] of Real;
   janelas : Byte;
+  cor : TColor;
 
 
 begin
@@ -1572,9 +1593,24 @@ begin
     janelas := 0;
     x2:=X;
     y2:=Y;
+  end
 
+  else if(op = 8) then
+  begin
+      Cor := Image1.Canvas.Pixels[X, Y];
 
+      if (Cor <> clGreen) and (Cor <> clRed) then
+        seed_fill(X, Y, Cor);
+      Image1.Refresh;
+  end
 
+  else if(op = 9) then
+  begin
+      Cor := Image1.Canvas.Pixels[X, Y];
+
+      if (Cor <> clGreen) and (Cor <> clRed) then
+        seed_fillN8(X, Y, Cor);
+      Image1.Refresh;
   end;
 
 end;
@@ -1795,6 +1831,220 @@ begin
     end;
 
   end;
+end;
+
+procedure TForm1.InverterCor(var Cor: TColor);
+begin
+  if Color = clWhite then
+    Color := clBlack
+  else
+    Color := clWhite;
+end;
+
+//Quando converti da imagem para desenho ficou bem pequeno, então usei uma llm para aumentar a escala
+procedure TForm1.desenhoAula16();
+var
+  i, j, k, dx, dy: integer;
+  scale: integer;
+begin
+  scale := 4; // quadruple the size
+
+  // Top horizontal line
+  for i := 0 to 11 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[i*scale + dx, 0*scale + dy] := clRed;
+
+  // Pixel (11,1)
+  for dx := 0 to scale - 1 do
+    for dy := 0 to scale - 1 do
+      Image1.Canvas.Pixels[11*scale + dx, 1*scale + dy] := clRed;
+
+  // Line from (7,2) to (11,2)
+  for i := 7 to 11 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[i*scale + dx, 2*scale + dy] := clRed;
+
+  // Single pixels
+  for dx := 0 to scale - 1 do
+    for dy := 0 to scale - 1 do
+    begin
+      Image1.Canvas.Pixels[7*scale + dx, 3*scale + dy] := clRed;
+      Image1.Canvas.Pixels[8*scale + dx, 4*scale + dy] := clRed;
+    end;
+
+  // Vertical line (9,5) to (9,8)
+  for i := 5 to 8 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[9*scale + dx, i*scale + dy] := clRed;
+
+  // Horizontal line (5,8) to (8,8)
+  for i := 5 to 8 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[i*scale + dx, 8*scale + dy] := clRed;
+
+  // Pixels (5,7), (5,6), (6,5)
+  for dx := 0 to scale - 1 do
+    for dy := 0 to scale - 1 do
+    begin
+      Image1.Canvas.Pixels[5*scale + dx, 7*scale + dy] := clRed;
+      Image1.Canvas.Pixels[5*scale + dx, 6*scale + dy] := clRed;
+      Image1.Canvas.Pixels[6*scale + dx, 5*scale + dy] := clRed;
+    end;
+
+  // Horizontal line (4,4) to (6,4)
+  for i := 4 to 6 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[i*scale + dx, 4*scale + dy] := clRed;
+
+  // Horizontal line (0,3) to (4,3)
+  for i := 0 to 4 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[i*scale + dx, 3*scale + dy] := clRed;
+
+  // Vertical line (0,1) to (0,2)
+  for i := 1 to 2 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[0*scale + dx, i*scale + dy] := clRed;
+end;
+
+procedure TForm1.SortIntArray(var Arr: array of Integer);
+var
+  i, j, temp: Integer;
+begin
+  for i := Low(Arr) to High(Arr) - 1 do
+    for j := i + 1 to High(Arr) do
+      if Arr[i] > Arr[j] then
+      begin
+        temp := Arr[i];
+        Arr[i] := Arr[j];
+        Arr[j] := temp;
+      end;
+end;
+
+procedure TForm1.EdgeFill(Bitmap: TBitmap);
+var
+  x, y: Integer;
+  MinX, MaxX, MinY, MaxY: Integer;
+  Intersections: array of Integer;
+  i, Count: Integer;
+  CurrentColor: TColor;
+begin
+  // === 1. Find bounding box ===
+  MinX := Bitmap.Width;
+  MinY := Bitmap.Height;
+  MaxX := 0;
+  MaxY := 0;
+
+  for y := 0 to Bitmap.Height - 1 do
+    for x := 0 to Bitmap.Width - 1 do
+      if Bitmap.Canvas.Pixels[x, y] = clBlack then
+      begin
+        if x < MinX then MinX := x;
+        if x > MaxX then MaxX := x;
+        if y < MinY then MinY := y;
+        if y > MaxY then MaxY := y;
+      end;
+
+   // === 2. Draw bounding box on the bitmap ===
+  Bitmap.Canvas.Pen.Color := clRed;      // Bounding box color
+  Bitmap.Canvas.Pen.Width := 1;          // Line thickness
+  Bitmap.Canvas.Brush.Style := bsClear;  // Don't fill rectangle
+
+  Bitmap.Canvas.Rectangle(MinX, MinY, MaxX, MaxY);
+
+  // Optional: refresh Image1 if using a TImage
+  Image1.Refresh;
+
+
+end;
+
+
+procedure TForm1.MenuItem12Click(Sender: TObject);
+begin
+  if OpenPictureDialog1.Execute then
+  begin
+    Image1.Picture.LoadFromFile(OpenPictureDialog1.FileName);
+
+    Image1.Refresh;
+  end;
+  EdgeFill(Image1.Picture.Bitmap);
+  Image1.Refresh;
+end;
+
+procedure TForm1.seed_fill(x, y: Integer; Cor: TColor);
+begin
+  if (x < 0) or (x >= Image1.Width) or
+     (y < 0) or (y >= Image1.Height) then Exit;
+
+  if (Image1.Canvas.Pixels[x, y] = clRed) or
+     (Image1.Canvas.Pixels[x, y] = clGreen) then Exit;
+
+  Image1.Canvas.Pixels[x, y] := clGreen;
+
+  seed_fill(x + 1, y, Cor);
+  seed_fill(x - 1, y, Cor);
+  seed_fill(x, y + 1, Cor);
+  seed_fill(x, y - 1, Cor);
+end;
+
+procedure TForm1.seed_fillN8(x, y: Integer; Cor: TColor);
+begin
+  if (x < 0) or (x >= 48) or
+     (y < 0) or (y >= 36) then Exit;
+
+  if (Image1.Canvas.Pixels[x, y] = clRed) or
+     (Image1.Canvas.Pixels[x, y] = clGreen) then Exit;
+
+  Image1.Canvas.Pixels[x, y] := clGreen;
+
+  seed_fillN8(x + 1, y, Cor);
+  seed_fillN8(x - 1, y, Cor);
+  seed_fillN8(x, y + 1, Cor);
+  seed_fillN8(x, y - 1, Cor);
+  seed_fillN8(x + 1, y + 1, Cor);
+  seed_fillN8(x + 1, y - 1, Cor);
+  seed_fillN8(x - 1, y + 1, Cor);
+  seed_fillN8(x - 1, y - 1, Cor);
+end;
+
+procedure TForm1.MenuItem13Click(Sender: TObject);
+begin
+  (*
+  if OpenPictureDialog1.Execute then
+  begin
+    Image1.Picture.LoadFromFile(OpenPictureDialog1.FileName);
+
+    Image1.Refresh;
+  end;*)
+  desenhoAula16();
+
+  op := 8;
+end;
+
+procedure TForm1.MenuItem14Click(Sender: TObject);
+begin
+  (*
+  if OpenPictureDialog1.Execute then
+  begin
+    Image1.Picture.LoadFromFile(OpenPictureDialog1.FileName);
+
+    Image1.Refresh;
+  end;*)
+  desenhoAula16();
+
+  op := 9;
+end;
+
+procedure TForm1.MenuItem15Click(Sender: TObject);
+begin
+  desenhoAula16();
 end;
 
 procedure TForm1.MenuItem3Click(Sender: TObject);
