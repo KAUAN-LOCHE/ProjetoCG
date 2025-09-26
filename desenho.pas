@@ -54,6 +54,7 @@ type
     MenuItem12: TMenuItem;
     MenuItem13: TMenuItem;
     MenuItem14: TMenuItem;
+    MenuItem17: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
@@ -87,7 +88,11 @@ type
     procedure MenuItem13Click(Sender: TObject);
     procedure MenuItem14Click(Sender: TObject);
     procedure MenuItem15Click(Sender: TObject);
+    procedure MenuItem16Click(Sender: TObject);
+    procedure MenuItem16MeasureItem(Sender: TObject; ACanvas: TCanvas;
+      var AWidth, AHeight: Integer);
     procedure MenuItem1Click(Sender: TObject);
+    procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
@@ -119,19 +124,31 @@ var
   desenhar : boolean;
   x1,xa, ya, xb, yb, x2,y2:integer;
   y1:integer;
-  contador:integer;
+  contador, contador2:integer;
   flagOpcao8 : boolean;
   xSeed, ySeed: integer;
 
 implementation
 
+
 {$R *.lfm}
 
 { TForm1 }
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  op := 0;
+  x1 := -1;
+  y1 := -1;
+end;
+
 
 procedure TForm1.MenuItem1Click(Sender: TObject);
 begin
 
+end;
+
+procedure TForm1.MenuItem2Click(Sender: TObject);
+begin
 end;
 
 procedure TForm1.Image1MouseDown(Sender: TObject; Button: TMouseButton;
@@ -142,14 +159,17 @@ begin
      desenhar := true;
   end;
 
-  if (op = 2) or (op = 3) or (op = 4) or (op=5) or (op = 7) then
+  if (op = 2) or (op = 3) or (op = 4) or (op=5) or (op = 7) or (op = 11) then
   begin
      desenhar := true;
      x1:= X;
      y1:=Y;
+     contador2:=0;
   end;
 
-  if (op = 8) then
+  if(op = 6) then contador2 := 0;
+
+  if (op = 9) or (op =10)  then
   begin
      xSeed := X;
      ySeed := Y;
@@ -157,10 +177,6 @@ begin
 end;
 
 procedure TForm1.Image1Click(Sender: TObject);
-begin
-end;
-
-procedure TForm1.FormCreate(Sender: TObject);
 begin
 
 end;
@@ -1452,6 +1468,20 @@ begin
   Edit1.Text := IntToStr(X);
   Edit2.Text := IntToStr(Y);
 end;
+function ByteToStr(c: Byte): string;
+var
+  i: Integer;
+begin
+  Result := '';
+  for i := 3 downto 0 do  // 4 bits, do mais significativo ao menos
+  begin
+    if (c and (1 shl i)) <> 0 then
+      Result := Result + '1'
+    else
+      Result := Result + '0';
+  end;
+end;
+
 
 procedure TForm1.Image1MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
@@ -1463,8 +1493,10 @@ var
   p1, p2, p3, p4, q1, q2, q3, q4, delx, dely,s:integer;
   r1, r2, r3, r4, maxx, minn: real;
   us : array [0 .. 4] of Real;
-  janelas : Byte;
+  cod1, cod2: Byte;
   cor : TColor;
+  t:real;
+  ydir, yesq, xcima, xbaixo: integer;
 
 
 begin
@@ -1503,7 +1535,10 @@ begin
         Image1.Canvas.Pixels[xi, yi] := clRed;
       end;
     end;
-
+    if (contador2 = 1) then
+    begin
+      op:= 7;
+    end;
     desenhar := False;
   end
   else if(op = 3) then
@@ -1590,12 +1625,217 @@ begin
   end
   else if(op = 7) then
   begin
-    janelas := 0;
-    x2:=X;
-    y2:=Y;
-  end
+  contador2 := 0;
+  x2 := X;
+  y2 := Y;
 
-  else if(op = 8) then
+  cod1 := 0;
+  cod2 := 0;
+
+  // codificação do ponto 1
+  if y1 > max(ya,yb) then cod1 := cod1 or 8;   // acima
+  if y1 < min(ya,yb) then cod1 := cod1 or 4;   // abaixo
+  if x1 > max(xa,xb) then cod1 := cod1 or 2;   // direita
+  if x1 < min(xa,xb) then cod1 := cod1 or 1;   // esquerda
+
+  // codificação do ponto 2
+  if y2 > max(ya,yb) then cod2 := cod2 or 8;
+  if y2 < min(ya,yb) then cod2 := cod2 or 4;
+  if x2 > max(xa,xb) then cod2 := cod2 or 2;
+  if x2 < min(xa,xb) then cod2 := cod2 or 1;
+
+  Edit3.Text := ByteToStr(cod1);
+  Edit4.Text := ByteToStr(cod2);
+
+  // coeficiente angular (com tratamento para linha vertical)
+  if (x2 - x1) <> 0 then
+    m := (y2 - y1) / (x2 - x1)
+  else
+    m := 1e10; // valor grande para linha vertical
+
+  // Passo 2 - totalmente visível
+  if (cod1 = 0) and (cod2 = 0) then
+  begin
+    t := 0;
+    while (t < 1) do
+    begin
+      x3 := round(x1 + (x2 - x1) * t);
+      y3 := round(y1 + (y2 - y1) * t);
+      Image1.Canvas.Pixels[x3, y3] := clRed;
+      t := t + 0.001;
+    end;
+  end
+  // Passo 3 - totalmente invisível
+  else if (cod1 and cod2) <> 0 then
+  begin
+    // Não desenha nada
+  end
+  // Passo 4 - parcialmente visível, calcular interseções
+  else
+  begin
+    // calcula candidatos às interseções
+    if (x2 - x1) <> 0 then
+    begin
+      yesq   := round(m * (min(xa,xb) - x1) + y1);
+      ydir   := round(m * (max(xa,xb) - x1) + y1);
+    end
+    else
+    begin
+      yesq := y1;
+      ydir := y1;
+    end;
+
+    if m <> 0 then
+    begin
+      xcima  := round((max(ya,yb) - y1) / m + x1);
+      xbaixo := round((min(ya,yb) - y1) / m + x1);
+    end
+    else
+    begin
+      xcima := x1;
+      xbaixo := x1;
+    end;
+
+    contador2 := 0;
+    xi := 0; yi := 0; x3 := 0; y3 := 0;
+
+    // caso 1: ponto inicial dentro
+    if cod1 = 0 then
+    begin
+      xi := x1;
+      yi := y1;
+
+      // Encontra a interseção válida (que conecta ao ponto externo)
+      if (cod2 and 1) <> 0 then // ponto 2 está à esquerda
+      begin
+        x3 := min(xa,xb);
+        y3 := yesq;
+      end
+      else if (cod2 and 2) <> 0 then // ponto 2 está à direita
+      begin
+        x3 := max(xa,xb);
+        y3 := ydir;
+      end
+      else if (cod2 and 4) <> 0 then // ponto 2 está abaixo
+      begin
+        x3 := xbaixo;
+        y3 := min(ya,yb);
+      end
+      else if (cod2 and 8) <> 0 then // ponto 2 está acima
+      begin
+        x3 := xcima;
+        y3 := max(ya,yb);
+      end;
+
+      // Verifica se a interseção está dentro dos limites da janela
+      if (x3 >= min(xa,xb)) and (x3 <= max(xa,xb)) and
+         (y3 >= min(ya,yb)) and (y3 <= max(ya,yb)) then
+      begin
+        contador2 := 2;
+      end;
+    end
+    // caso 2: ponto final dentro
+    else if cod2 = 0 then
+    begin
+      x3 := x2;
+      y3 := y2;
+
+      // Encontra a interseção válida (que conecta ao ponto externo)
+      if (cod1 and 1) <> 0 then // ponto 1 está à esquerda
+      begin
+        xi := min(xa,xb);
+        yi := yesq;
+      end
+      else if (cod1 and 2) <> 0 then // ponto 1 está à direita
+      begin
+        xi := max(xa,xb);
+        yi := ydir;
+      end
+      else if (cod1 and 4) <> 0 then // ponto 1 está abaixo
+      begin
+        xi := xbaixo;
+        yi := min(ya,yb);
+      end
+      else if (cod1 and 8) <> 0 then // ponto 1 está acima
+      begin
+        xi := xcima;
+        yi := max(ya,yb);
+      end;
+
+      // Verifica se a interseção está dentro dos limites da janela
+      if (xi >= min(xa,xb)) and (xi <= max(xa,xb)) and
+         (yi >= min(ya,yb)) and (yi <= max(ya,yb)) then
+      begin
+        contador2 := 2;
+      end;
+    end
+    // caso 3: ambos fora mas segmento cruza janela (duas interseções)
+    else
+    begin
+      if (yesq >= min(ya,yb)) and (yesq <= max(ya,yb)) then
+      begin
+        if contador2 = 0 then
+        begin
+          xi := min(xa,xb); yi := yesq; contador2 := 1;
+        end
+        else
+        begin
+          x3 := min(xa,xb); y3 := yesq; contador2 := 2;
+        end;
+      end;
+
+      if (ydir >= min(ya,yb)) and (ydir <= max(ya,yb)) and (contador2 <> 2) then
+      begin
+        if contador2 = 0 then
+        begin
+          xi := max(xa,xb); yi := ydir; contador2 := 1;
+        end
+        else
+        begin
+          x3 := max(xa,xb); y3 := ydir; contador2 := 2;
+        end;
+      end;
+
+      if (xcima >= min(xa,xb)) and (xcima <= max(xa,xb)) and (contador2 <> 2) then
+      begin
+        if contador2 = 0 then
+        begin
+          xi := xcima; yi := max(ya,yb); contador2 := 1;
+        end
+        else
+        begin
+          x3 := xcima; y3 := max(ya,yb); contador2 := 2;
+        end;
+      end;
+
+      if (xbaixo >= min(xa,xb)) and (xbaixo <= max(xa,xb)) and (contador2 <> 2) then
+      begin
+        if contador2 = 0 then
+        begin
+          xi := xbaixo; yi := min(ya,yb); contador2 := 1;
+        end
+        else
+        begin
+          x3 := xbaixo; y3 := min(ya,yb); contador2 := 2;
+        end;
+      end;
+    end;
+
+    // desenha segmento apenas se encontrou duas interseções válidas
+    if contador2 = 2 then
+    begin
+      t := 0;
+      while t < 1 do
+      begin
+        x2 := round(xi + (x3 - xi) * t);
+        y2 := round(yi + (y3 - yi) * t);
+        Image1.Canvas.Pixels[x2, y2] := clRed;
+        t := t + 0.001;
+      end;
+    end;
+  end;
+end
+  else if(op = 9) then
   begin
       Cor := Image1.Canvas.Pixels[X, Y];
 
@@ -1604,13 +1844,29 @@ begin
       Image1.Refresh;
   end
 
-  else if(op = 9) then
+  else if(op = 10) then
   begin
       Cor := Image1.Canvas.Pixels[X, Y];
 
       if (Cor <> clGreen) and (Cor <> clRed) then
         seed_fillN8(X, Y, Cor);
       Image1.Refresh;
+  end
+
+  else if (op = 11) then
+  begin
+    t:=0;
+    x2:=X;
+    y2:= Y;
+    while (t < 1) do
+    begin
+      x3:= round(x1 + (x2-x1) * t);
+      y3:= round(y1 + (y2-y1) * t);
+      Image1.Canvas.Pixels[x3,y3] := clred;
+      t := t + 0.001;
+    end;
+
+
   end;
 
 end;
@@ -2025,7 +2281,7 @@ begin
   end;*)
   desenhoAula16();
 
-  op := 8;
+  op := 9;
 end;
 
 procedure TForm1.MenuItem14Click(Sender: TObject);
@@ -2039,12 +2295,23 @@ begin
   end;*)
   desenhoAula16();
 
-  op := 9;
+  op := 10;
 end;
 
 procedure TForm1.MenuItem15Click(Sender: TObject);
 begin
   desenhoAula16();
+end;
+
+procedure TForm1.MenuItem16Click(Sender: TObject);
+begin
+  op:=11;
+end;
+
+procedure TForm1.MenuItem16MeasureItem(Sender: TObject; ACanvas: TCanvas;
+  var AWidth, AHeight: Integer);
+begin
+
 end;
 
 procedure TForm1.MenuItem3Click(Sender: TObject);
