@@ -2091,10 +2091,10 @@ end;
 
 procedure TForm1.InverterCor(var Cor: TColor);
 begin
-  if Color = clWhite then
+  if Color = clRed then
     Color := clBlack
   else
-    Color := clWhite;
+    Color := clRed;
 end;
 
 //Quando converti da imagem para desenho ficou bem pequeno, então usei uma llm para aumentar a escala
@@ -2103,7 +2103,7 @@ var
   i, j, k, dx, dy: integer;
   scale: integer;
 begin
-  scale := 4; // quadruple the size
+  scale := 16; // quadruple the size
 
   // Top horizontal line
   for i := 0 to 11 do
@@ -2127,7 +2127,9 @@ begin
     for dy := 0 to scale - 1 do
     begin
       Image1.Canvas.Pixels[7*scale + dx, 3*scale + dy] := clRed;
+      Image1.Canvas.Pixels[8*scale + dx, 3*scale + dy] := clRed;
       Image1.Canvas.Pixels[8*scale + dx, 4*scale + dy] := clRed;
+      Image1.Canvas.Pixels[9*scale + dx, 4*scale + dy] := clRed;
     end;
 
   // Vertical line (9,5) to (9,8)
@@ -2148,6 +2150,7 @@ begin
     begin
       Image1.Canvas.Pixels[5*scale + dx, 7*scale + dy] := clRed;
       Image1.Canvas.Pixels[5*scale + dx, 6*scale + dy] := clRed;
+      Image1.Canvas.Pixels[5*scale + dx, 5*scale + dy] := clRed;
       Image1.Canvas.Pixels[6*scale + dx, 5*scale + dy] := clRed;
     end;
 
@@ -2189,10 +2192,9 @@ var
   x, y: Integer;
   MinX, MaxX, MinY, MaxY: Integer;
   Intersections: array of Integer;
-  i, Count: Integer;
+  i, j, k, Count: Integer;
   CurrentColor: TColor;
 begin
-  // === 1. Find bounding box ===
   MinX := Bitmap.Width;
   MinY := Bitmap.Height;
   MaxX := 0;
@@ -2200,7 +2202,7 @@ begin
 
   for y := 0 to Bitmap.Height - 1 do
     for x := 0 to Bitmap.Width - 1 do
-      if Bitmap.Canvas.Pixels[x, y] = clBlack then
+      if Bitmap.Canvas.Pixels[x, y] = clRed then
       begin
         if x < MinX then MinX := x;
         if x > MaxX then MaxX := x;
@@ -2208,28 +2210,43 @@ begin
         if y > MaxY then MaxY := y;
       end;
 
-   // === 2. Draw bounding box on the bitmap ===
-  Bitmap.Canvas.Pen.Color := clRed;      // Bounding box color
-  Bitmap.Canvas.Pen.Width := 1;          // Line thickness
-  Bitmap.Canvas.Brush.Style := bsClear;  // Don't fill rectangle
+  Bitmap.Canvas.Pen.Color := clGreen;
+  Bitmap.Canvas.Pen.Width := 1;
+  Bitmap.Canvas.Brush.Style := bsClear;
 
   Bitmap.Canvas.Rectangle(MinX, MinY, MaxX, MaxY);
 
-  // Optional: refresh Image1 if using a TImage
   Image1.Refresh;
 
-
+  for j := MinY to MaxY do
+  begin
+    for i := MinX to MaxX do
+    begin
+      if (Image1.Canvas.Pixels[i,j] = clRed) and (Image1.Canvas.Pixels[i-1,j] <> clRed) and (Image1.Canvas.Pixels[i+1,j] = clBlack) then
+      begin
+        k := i + 1;
+        while (Image1.Canvas.Pixels[k, j] <> clRed) and (k <= MaxX) do
+        begin
+          CurrentColor := Image1.Canvas.Pixels[k, j];
+          InverterCor(CurrentColor);
+          Image1.Canvas.Pixels[k,j] := clGreen;
+          k := k + 1;
+        end;
+      end;
+    end;
+  end;
 end;
 
 
 procedure TForm1.MenuItem12Click(Sender: TObject);
 begin
-  if OpenPictureDialog1.Execute then
+  (*if OpenPictureDialog1.Execute then
   begin
     Image1.Picture.LoadFromFile(OpenPictureDialog1.FileName);
 
     Image1.Refresh;
-  end;
+  end;*)
+  desenhoAula16();
   EdgeFill(Image1.Picture.Bitmap);
   Image1.Refresh;
 end;
@@ -2252,8 +2269,8 @@ end;
 
 procedure TForm1.seed_fillN8(x, y: Integer; Cor: TColor);
 begin
-  if (x < 0) or (x >= 48) or
-     (y < 0) or (y >= 36) then Exit;
+  if (x < 0) or (x >= 192) or
+     (y < 0) or (y >= 144) then Exit;
 
   if (Image1.Canvas.Pixels[x, y] = clRed) or
      (Image1.Canvas.Pixels[x, y] = clGreen) then Exit;
