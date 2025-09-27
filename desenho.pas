@@ -105,12 +105,13 @@ type
     procedure MultiplicarMatrizes(const Matriz1, Matriz2: TMatriz; var MResultado: TMatriz);
     procedure ProjecaoOrtografica(const MC, MH: TMatriz; const canvasCenterX, CanvasCenterY: Integer);
     procedure RadioButton6Change(Sender: TObject);
-    procedure InverterCor(var Cor: TColor);
-    procedure EdgeFill(Bitmap: TBitmap);
+    procedure EdgeFill(Bitmap: TBitmap; Scale: Integer);
     procedure seed_fill(x, y: Integer; Cor: TColor);
     procedure seed_fillN8(x, y: Integer; Cor: TColor);
     procedure SortIntArray(var Arr: array of Integer);
     procedure desenhoAula16();
+    procedure desenhoAula16B();
+    function InverterCor(Cor: TColor): TColor;
   private
 
   public
@@ -2089,21 +2090,13 @@ begin
   end;
 end;
 
-procedure TForm1.InverterCor(var Cor: TColor);
-begin
-  if Color = clRed then
-    Color := clBlack
-  else
-    Color := clRed;
-end;
-
 //Quando converti da imagem para desenho ficou bem pequeno, então usei uma llm para aumentar a escala
 procedure TForm1.desenhoAula16();
 var
   i, j, k, dx, dy: integer;
   scale: integer;
 begin
-  scale := 16; // quadruple the size
+  scale := 16;
 
   // Top horizontal line
   for i := 0 to 11 do
@@ -2173,6 +2166,79 @@ begin
         Image1.Canvas.Pixels[0*scale + dx, i*scale + dy] := clRed;
 end;
 
+//Quando converti da imagem para desenho ficou bem pequeno, então usei uma llm para aumentar a escala
+procedure TForm1.desenhoAula16B();
+var
+  i, j, k, dx, dy: integer;
+  scale: integer;
+begin
+  scale := 16;
+
+  // Top horizontal line
+  for i := 0 to 11 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[i*scale + dx, 0*scale + dy] := clRed;
+
+  // Pixel (11,1)
+  for dx := 0 to scale - 1 do
+    for dy := 0 to scale - 1 do
+      Image1.Canvas.Pixels[11*scale + dx, 1*scale + dy] := clRed;
+
+  // Line from (7,2) to (11,2)
+  for i := 7 to 11 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[i*scale + dx, 2*scale + dy] := clRed;
+
+  // Single pixels
+  for dx := 0 to scale - 1 do
+    for dy := 0 to scale - 1 do
+    begin
+      Image1.Canvas.Pixels[7*scale + dx, 3*scale + dy] := clRed;
+      Image1.Canvas.Pixels[8*scale + dx, 4*scale + dy] := clRed;
+    end;
+
+  // Vertical line (9,5) to (9,8)
+  for i := 5 to 8 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[9*scale + dx, i*scale + dy] := clRed;
+
+  // Horizontal line (5,8) to (8,8)
+  for i := 5 to 8 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[i*scale + dx, 8*scale + dy] := clRed;
+
+  // Pixels (5,7), (5,6), (6,5)
+  for dx := 0 to scale - 1 do
+    for dy := 0 to scale - 1 do
+    begin
+      Image1.Canvas.Pixels[5*scale + dx, 7*scale + dy] := clRed;
+      Image1.Canvas.Pixels[5*scale + dx, 6*scale + dy] := clRed;
+      Image1.Canvas.Pixels[6*scale + dx, 5*scale + dy] := clRed;
+    end;
+
+  // Horizontal line (4,4) to (6,4)
+  for i := 4 to 6 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[i*scale + dx, 4*scale + dy] := clRed;
+
+  // Horizontal line (0,3) to (4,3)
+  for i := 0 to 4 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[i*scale + dx, 3*scale + dy] := clRed;
+
+  // Vertical line (0,1) to (0,2)
+  for i := 1 to 2 do
+    for dx := 0 to scale - 1 do
+      for dy := 0 to scale - 1 do
+        Image1.Canvas.Pixels[0*scale + dx, i*scale + dy] := clRed;
+end;
+
 procedure TForm1.SortIntArray(var Arr: array of Integer);
 var
   i, j, temp: Integer;
@@ -2187,56 +2253,119 @@ begin
       end;
 end;
 
-procedure TForm1.EdgeFill(Bitmap: TBitmap);
-var
-  x, y: Integer;
-  MinX, MaxX, MinY, MaxY: Integer;
-  Intersections: array of Integer;
-  i, j, k, Count: Integer;
-  CurrentColor: TColor;
+function TForm1.InverterCor(Cor: TColor): TColor;
 begin
-  MinX := Bitmap.Width;
-  MinY := Bitmap.Height;
-  MaxX := 0;
-  MaxY := 0;
+  if Cor = clBlack then
+    Result := clGreen
+  else if Cor = clGreen then
+    Result := clBlack
+  else
+    Result := Cor;
+end;
 
-  for y := 0 to Bitmap.Height - 1 do
-    for x := 0 to Bitmap.Width - 1 do
-      if Bitmap.Canvas.Pixels[x, y] = clRed then
+procedure TForm1.EdgeFill(Bitmap: TBitmap; Scale: Integer);
+var
+  gx, gy, x, y: Integer;
+  MinGX, MaxGX, MinGY, MaxGY: Integer;
+  RedPositions: array of Integer;
+  rpCount, idx: Integer;
+  IsHorizontal: Boolean;
+  PixelColor: TColor;
+begin
+  //Criando Bounding-Box lógico sem escala
+  MinGX := Bitmap.Width div Scale;
+  MinGY := Bitmap.Height div Scale;
+  MaxGX := -1;
+  MaxGY := -1;
+
+  for gy := 0 to (Bitmap.Height div Scale) - 1 do
+    for gx := 0 to (Bitmap.Width div Scale) - 1 do
+    begin
+      if Bitmap.Canvas.Pixels[gx * Scale, gy * Scale] = clRed then
       begin
-        if x < MinX then MinX := x;
-        if x > MaxX then MaxX := x;
-        if y < MinY then MinY := y;
-        if y > MaxY then MaxY := y;
+        if gx < MinGX then MinGX := gx;
+        if gx > MaxGX then MaxGX := gx;
+        if gy < MinGY then MinGY := gy;
+        if gy > MaxGY then MaxGY := gy;
+      end;
+    end;
+
+  if MaxGX = -1 then Exit;
+
+
+
+  for gy := MinGY to MaxGY do
+  begin
+    rpCount := 0;
+    SetLength(RedPositions, 0);
+
+    // Contabilizando pixels vermelhos nessa linha lógica
+    // OBS: Cada entrada representa a posição de um bloco lógico vermelho.
+    for gx := MinGX to MaxGX do
+      if Bitmap.Canvas.Pixels[gx * Scale, gy * Scale] = clRed then
+      begin
+        SetLength(RedPositions, rpCount + 1);
+        RedPositions[rpCount] := gx;
+        Inc(rpCount);
       end;
 
-  Bitmap.Canvas.Pen.Color := clGreen;
-  Bitmap.Canvas.Pen.Width := 1;
-  Bitmap.Canvas.Brush.Style := bsClear;
+    // Precisa de pelo menos dois pixels vermelhos para formar um "par" delimitador
+    if rpCount < 2 then
+      Continue;
 
-  Bitmap.Canvas.Rectangle(MinX, MinY, MaxX, MaxY);
 
-  Image1.Refresh;
-
-  for j := MinY to MaxY do
-  begin
-    for i := MinX to MaxX do
-    begin
-      if (Image1.Canvas.Pixels[i,j] = clRed) and (Image1.Canvas.Pixels[i-1,j] <> clRed) and (Image1.Canvas.Pixels[i+1,j] = clBlack) then
+    //Verificação de linhas horizontais puras
+    IsHorizontal := True;
+    for idx := 1 to rpCount - 1 do
+      if RedPositions[idx] <> RedPositions[idx - 1] + 1 then
       begin
-        k := i + 1;
-        while (Image1.Canvas.Pixels[k, j] <> clRed) and (k <= MaxX) do
+        IsHorizontal := False;
+        Break;
+      end;
+
+    // Verifica também se existe linha vermelha logo acima ou abaixo,
+    // o que desqualifica como linha horizontal isolada.
+    if IsHorizontal then
+    begin
+      for idx := 0 to rpCount - 1 do
+      begin
+        if ((gy > 0) and (Bitmap.Canvas.Pixels[RedPositions[idx] * Scale, (gy - 1) * Scale] = clRed)) or
+           ((gy < (Bitmap.Height div Scale) - 1) and
+            (Bitmap.Canvas.Pixels[RedPositions[idx] * Scale, (gy + 1) * Scale] = clRed)) then
         begin
-          CurrentColor := Image1.Canvas.Pixels[k, j];
-          InverterCor(CurrentColor);
-          Image1.Canvas.Pixels[k,j] := clGreen;
-          k := k + 1;
+          IsHorizontal := False;
+          Break;
         end;
       end;
     end;
-  end;
-end;
 
+    if IsHorizontal then
+      Continue;
+
+
+    // Invertendo cores ENTRE pares de pixels vermelhos
+    // OBS: A inversão ocorre entre pares consecutivos, tratando os pixels vermelhos
+    // como limites de "dentro/fora". Sempre anda em passos de 2.
+    idx := 0;
+    while idx < rpCount - 1 do
+    begin
+      for gx := RedPositions[idx] + 1 to RedPositions[idx + 1] - 1 do
+      begin
+        for y := gy * Scale to (gy + 1) * Scale - 1 do
+          for x := gx * Scale to (gx + 1) * Scale - 1 do
+          begin
+            PixelColor := Bitmap.Canvas.Pixels[x, y];
+            if (PixelColor = clBlack) or (PixelColor = clGreen) then
+              Bitmap.Canvas.Pixels[x, y] := InverterCor(PixelColor);
+          end;
+      end;
+      Inc(idx, 2);
+    end;
+
+  end;
+
+  Image1.Refresh;
+end;
 
 procedure TForm1.MenuItem12Click(Sender: TObject);
 begin
@@ -2246,8 +2375,8 @@ begin
 
     Image1.Refresh;
   end;*)
-  desenhoAula16();
-  EdgeFill(Image1.Picture.Bitmap);
+  desenhoAula16B();
+  EdgeFill(Image1.Picture.Bitmap, 16);
   Image1.Refresh;
 end;
 
