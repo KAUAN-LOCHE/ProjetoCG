@@ -37,8 +37,6 @@ type
     Edit27: TEdit;
     Edit28: TEdit;
     Edit29: TEdit;
-    Edit3: TEdit;
-    Edit4: TEdit;
     Edit5: TEdit;
     Edit6: TEdit;
     Edit7: TEdit;
@@ -1601,8 +1599,6 @@ begin
     begin
       xa := X;
       ya := Y;
-      Edit3.Text := IntToStr(xi);
-      Edit4.Text := IntToStr(yi);
       contador := contador + 1;
     end
     else
@@ -1645,8 +1641,6 @@ begin
   if x2 > max(xa,xb) then cod2 := cod2 or 2;
   if x2 < min(xa,xb) then cod2 := cod2 or 1;
 
-  Edit3.Text := ByteToStr(cod1);
-  Edit4.Text := ByteToStr(cod2);
 
   // coeficiente angular (com tratamento para linha vertical)
   if (x2 - x1) <> 0 then

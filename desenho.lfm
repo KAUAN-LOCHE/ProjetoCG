@@ -1,19 +1,20 @@
 object Form1: TForm1
   Left = -9
-  Height = 821
+  Height = 1026
   Top = -9
-  Width = 1536
+  Width = 1920
   Caption = 'Form1'
-  ClientHeight = 821
-  ClientWidth = 1536
+  ClientHeight = 0
+  ClientWidth = 0
+  DesignTimePPI = 120
   Menu = MainMenu1
   LCLVersion = '4.2.0.0'
   OnCreate = FormCreate
   object Image1: TImage
-    Left = 256
-    Height = 451
-    Top = 3
-    Width = 810
+    Left = 320
+    Height = 564
+    Top = 4
+    Width = 1012
     Transparent = True
     OnClick = Image1Click
     OnMouseDown = Image1MouseDown
@@ -21,335 +22,322 @@ object Form1: TForm1
     OnMouseUp = Image1MouseUp
   end
   object Edit1: TEdit
-    Left = 52
+    Left = 65
     Height = 28
-    Top = 135
-    Width = 80
+    Top = 169
+    Width = 100
     TabOrder = 0
   end
   object Edit2: TEdit
-    Left = 52
+    Left = 65
     Height = 28
-    Top = 186
-    Width = 80
+    Top = 232
+    Width = 100
     TabOrder = 1
   end
-  object Edit3: TEdit
-    Left = 55
-    Height = 28
-    Top = 244
-    Width = 80
-    TabOrder = 2
-  end
-  object Edit4: TEdit
-    Left = 58
-    Height = 28
-    Top = 300
-    Width = 80
-    TabOrder = 3
-  end
   object RadioButton1: TRadioButton
-    Left = 1099
+    Left = 1374
     Height = 24
-    Top = 30
+    Top = 38
     Width = 56
     Caption = 'Local'
-    TabOrder = 4
+    TabOrder = 2
     OnChange = RadioButton1Change
   end
   object RadioButton2: TRadioButton
-    Left = 1099
+    Left = 1374
     Height = 24
-    Top = 62
+    Top = 78
     Width = 65
     Caption = 'Global'
-    TabOrder = 5
+    TabOrder = 3
     OnChange = RadioButton2Change
   end
   object Label1: TLabel
-    Left = 1099
+    Left = 1374
     Height = 20
-    Top = 14
+    Top = 18
     Width = 41
     Caption = 'Escala'
     OnClick = Label1Click
   end
   object Edit5: TEdit
-    Left = 1160
+    Left = 1450
     Height = 28
-    Top = 30
-    Width = 80
+    Top = 38
+    Width = 100
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 6
+    TabOrder = 4
     TextHint = 'X'
     OnChange = Edit5Change
   end
   object Edit6: TEdit
-    Left = 1248
+    Left = 1560
     Height = 28
-    Top = 30
-    Width = 80
+    Top = 38
+    Width = 100
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 7
+    TabOrder = 5
     TextHint = 'Y'
     OnChange = Edit6Change
   end
   object Edit7: TEdit
-    Left = 1336
+    Left = 1670
     Height = 28
-    Top = 30
-    Width = 80
+    Top = 38
+    Width = 100
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 8
+    TabOrder = 6
     TextHint = 'Z'
     OnChange = Edit7Change
   end
   object Edit8: TEdit
-    Left = 1160
+    Left = 1450
     Height = 28
-    Top = 62
-    Width = 80
+    Top = 78
+    Width = 100
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 9
+    TabOrder = 7
     TextHint = 'Global'
   end
   object RadioButton3: TRadioButton
-    Left = 1099
+    Left = 1374
     Height = 24
-    Top = 112
+    Top = 140
     Width = 92
     Caption = 'Translação'
-    TabOrder = 10
+    TabOrder = 8
   end
   object Edit9: TEdit
-    Left = 1184
+    Left = 1480
     Height = 28
-    Top = 112
-    Width = 80
+    Top = 140
+    Width = 100
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 11
+    TabOrder = 9
     TextHint = 'X'
   end
   object Edit10: TEdit
-    Left = 1272
+    Left = 1590
     Height = 28
-    Top = 112
-    Width = 80
+    Top = 140
+    Width = 100
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 12
+    TabOrder = 10
     TextHint = 'Y'
   end
   object Edit11: TEdit
-    Left = 1360
+    Left = 1700
     Height = 28
-    Top = 112
-    Width = 80
+    Top = 140
+    Width = 100
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 13
+    TabOrder = 11
     TextHint = 'Z'
   end
   object RadioButton4: TRadioButton
-    Left = 1099
+    Left = 1374
     Height = 24
-    Top = 176
+    Top = 220
     Width = 71
     Caption = 'Origem'
-    TabOrder = 14
+    TabOrder = 12
   end
   object RadioButton5: TRadioButton
-    Left = 1099
+    Left = 1374
     Height = 24
-    Top = 208
+    Top = 260
     Width = 137
     Caption = 'Centro do Objeto'
-    TabOrder = 15
+    TabOrder = 13
   end
   object Label2: TLabel
-    Left = 1099
+    Left = 1374
     Height = 20
-    Top = 160
+    Top = 200
     Width = 55
     Caption = 'Rotação'
   end
   object Edit12: TEdit
-    Left = 1224
+    Left = 1530
     Height = 28
-    Top = 172
-    Width = 80
+    Top = 215
+    Width = 100
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 16
+    TabOrder = 14
     TextHint = 'Eixo'
   end
   object Edit13: TEdit
-    Left = 1224
+    Left = 1530
     Height = 28
-    Top = 208
-    Width = 80
+    Top = 260
+    Width = 100
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 17
+    TabOrder = 15
     TextHint = 'Graus'
   end
   object RadioButton6: TRadioButton
-    Left = 1099
+    Left = 1374
     Height = 24
-    Top = 256
+    Top = 320
     Width = 79
     Caption = 'Shearing'
-    TabOrder = 18
+    TabOrder = 16
     OnChange = RadioButton6Change
   end
   object Edit14: TEdit
-    Left = 1099
+    Left = 1374
     Height = 28
-    Top = 280
-    Width = 29
-    TabOrder = 19
+    Top = 350
+    Width = 36
+    TabOrder = 17
     Text = '1'
   end
   object Edit15: TEdit
-    Left = 1136
+    Left = 1420
     Height = 28
-    Top = 280
-    Width = 29
-    TabOrder = 20
+    Top = 350
+    Width = 36
+    TabOrder = 18
     Text = '-0,3'
   end
   object Edit16: TEdit
-    Left = 1176
+    Left = 1470
     Height = 28
-    Top = 280
-    Width = 29
-    TabOrder = 21
+    Top = 350
+    Width = 36
+    TabOrder = 19
     Text = '0,9'
   end
   object Edit17: TEdit
-    Left = 1216
+    Left = 1520
     Height = 28
-    Top = 280
-    Width = 29
+    Top = 350
+    Width = 36
     ReadOnly = True
-    TabOrder = 22
+    TabOrder = 20
     Text = '0'
   end
   object Edit18: TEdit
-    Left = 1099
+    Left = 1374
     Height = 28
-    Top = 312
-    Width = 29
-    TabOrder = 23
+    Top = 390
+    Width = 36
+    TabOrder = 21
     Text = '1,3'
   end
   object Edit19: TEdit
-    Left = 1136
+    Left = 1420
     Height = 28
-    Top = 312
-    Width = 29
-    TabOrder = 24
+    Top = 390
+    Width = 36
+    TabOrder = 22
     Text = '1'
   end
   object Edit20: TEdit
-    Left = 1176
+    Left = 1470
     Height = 28
-    Top = 312
-    Width = 29
-    TabOrder = 25
+    Top = 390
+    Width = 36
+    TabOrder = 23
     Text = '-1,2'
   end
   object Edit21: TEdit
-    Left = 1216
+    Left = 1520
     Height = 28
-    Top = 312
-    Width = 29
+    Top = 390
+    Width = 36
     ReadOnly = True
-    TabOrder = 26
+    TabOrder = 24
     Text = '0'
   end
   object Edit22: TEdit
-    Left = 1099
+    Left = 1374
     Height = 28
-    Top = 344
-    Width = 29
-    TabOrder = 27
+    Top = 430
+    Width = 36
+    TabOrder = 25
     Text = '2'
   end
   object Edit23: TEdit
-    Left = 1136
+    Left = 1420
     Height = 28
-    Top = 344
-    Width = 29
-    TabOrder = 28
+    Top = 430
+    Width = 36
+    TabOrder = 26
     Text = '2,1'
   end
   object Edit24: TEdit
-    Left = 1176
+    Left = 1470
     Height = 28
-    Top = 344
-    Width = 29
-    TabOrder = 29
+    Top = 430
+    Width = 36
+    TabOrder = 27
     Text = '1'
   end
   object Edit25: TEdit
-    Left = 1216
+    Left = 1520
     Height = 28
-    Top = 344
-    Width = 29
+    Top = 430
+    Width = 36
     ReadOnly = True
-    TabOrder = 30
+    TabOrder = 28
     Text = '0'
   end
   object Edit26: TEdit
-    Left = 1099
+    Left = 1374
     Height = 28
-    Top = 376
-    Width = 29
-    TabOrder = 31
+    Top = 470
+    Width = 36
+    TabOrder = 29
     Text = '0'
   end
   object Edit27: TEdit
-    Left = 1136
+    Left = 1420
     Height = 28
-    Top = 376
-    Width = 29
-    TabOrder = 32
+    Top = 470
+    Width = 36
+    TabOrder = 30
     Text = '0'
   end
   object Edit28: TEdit
-    Left = 1176
+    Left = 1470
     Height = 28
-    Top = 376
-    Width = 29
-    TabOrder = 33
+    Top = 470
+    Width = 36
+    TabOrder = 31
     Text = '0'
   end
   object Edit29: TEdit
-    Left = 1216
+    Left = 1520
     Height = 28
-    Top = 376
-    Width = 29
-    TabOrder = 34
+    Top = 470
+    Width = 36
+    ReadOnly = True
+    TabOrder = 32
     Text = '1'
   end
   object Button1: TButton
-    Left = 1365
-    Height = 75
-    Top = 280
-    Width = 75
+    Left = 1706
+    Height = 94
+    Top = 350
+    Width = 94
     Caption = 'Executa'
-    TabOrder = 35
+    TabOrder = 33
     OnClick = Button1Click
   end
   object MainMenu1: TMainMenu
-    Left = 192
-    Top = 40
+    Left = 240
+    Top = 50
     object MenuItem1: TMenuItem
       Caption = 'Arquivo'
       OnClick = MenuItem1Click
@@ -411,7 +399,7 @@ object Form1: TForm1
     end
   end
   object OpenPictureDialog1: TOpenPictureDialog
-    Left = 152
-    Top = 40
+    Left = 190
+    Top = 50
   end
 end
