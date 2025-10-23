@@ -1,11 +1,11 @@
 object Form1: TForm1
-  Left = -9
+  Left = -2
   Height = 1026
-  Top = -9
+  Top = 166
   Width = 1920
   Caption = 'Form1'
-  ClientHeight = 0
-  ClientWidth = 0
+  ClientHeight = 1026
+  ClientWidth = 1920
   DesignTimePPI = 120
   Menu = MainMenu1
   LCLVersion = '4.2.0.0'
@@ -334,6 +334,15 @@ object Form1: TForm1
     Caption = 'Executa'
     TabOrder = 33
     OnClick = Button1Click
+  end
+  object RotacionarCasinha: TCheckBox
+    Left = 1664
+    Height = 24
+    Top = 219
+    Width = 223
+    Caption = 'Rotacionar apenas a "Casinha"'
+    TabOrder = 34
+    OnChange = RotacionarCasinhaChange
   end
   object MainMenu1: TMainMenu
     Left = 240

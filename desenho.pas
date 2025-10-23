@@ -15,6 +15,7 @@ type
 
   TForm1 = class(TForm)
     Button1: TButton;
+    RotacionarCasinha: TCheckBox;
     Edit1: TEdit;
     Edit10: TEdit;
     Edit11: TEdit;
@@ -70,6 +71,7 @@ type
     RadioButton5: TRadioButton;
     RadioButton6: TRadioButton;
     procedure Button1Click(Sender: TObject);
+    procedure RotacionarCasinhaChange(Sender: TObject);
     procedure Edit5Change(Sender: TObject);
     procedure Edit6Change(Sender: TObject);
     procedure Edit7Change(Sender: TObject);
@@ -115,10 +117,12 @@ type
     function InverterCor(Cor: TColor): TColor;
  // Adicionar novas procedures
     procedure MultiplicarMatrizes4x4(const Matriz1, Matriz2: TMatriz; var MResultado: TMatriz);
-    procedure desenharZBufferObjetos;
 
+    // MODIFIQUE A LINHA ABAIXO:
+    procedure desenharZBufferObjetos(const MTransform: TMatriz); // <-- ADICIONAR PARÂMETRO
   private
-    ZBuffer: TMatriz; // Adicionar o Z-Buffer
+    ZBuffer: TMatriz;
+
   public
 
   end;
@@ -435,960 +439,175 @@ end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 var
-  a, b, c, cx, cy, cz : Integer;
-  MC, MH, MHO, MHTPos, MHTNeg, MResultado, MResultadoO, MResultadoT : array of array of Double;
-  canvasCenterX, canvasCenterY : Integer;
+  // Variáveis para CONSTRUIR a matriz
+  a, b, cx, cy, cz : Integer;
+  MTransform, MHO, MHTPos, MHTNeg, MTemp : TMatriz;
   aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp : Double;
+
+  // Variáveis para DESENHAR a casinha
+  MC_Casinha : TMatriz;
+  canvasCenterX, canvasCenterY : Integer;
 begin
+  // 1. INICIALIZAR MATRIZ DE TRANSFORMAÇÃO (MTransform)
+  SetLength(MTransform, 4, 4);
+  SetLength(MHO, 4, 4);
+  SetLength(MHTPos, 4, 4);
+  SetLength(MHTNeg, 4, 4);
+  SetLength(MTemp, 4, 4);
+
+  // Define MTransform como Matriz Identidade por padrão
+  for a := 0 to 3 do for b := 0 to 3 do MTransform[a,b] := 0.0;
+  MTransform[0,0] := 1.0;
+  MTransform[1,1] := 1.0;
+  MTransform[2,2] := 1.0;
+  MTransform[3,3] := 1.0;
+
+  // 2. CONSTRUIR MATRIZ DE TRANSFORMAÇÃO (Lógica movida para cá)
+
   // Escala Local
-  if RadioButton1.Checked and FlagOpcao8 then
+  if RadioButton1.Checked then
   begin
     aa := StrToFloat(Edit5.Text);
     bb := StrToFloat(Edit6.Text);
     cc := StrToFloat(Edit7.Text);
-    canvasCenterX := Image1.Width div 2;
-    canvasCenterY := Image1.Height div 2;
-
-    SetLength(MC, 1, 4);
-    SetLength(MH, 4, 4);
-    for a := 0 to 3 do
-    begin
-         for b := 0 to 3 do
-         begin
-              MH[a,b] := 0;
-         end;
-    end;
-    MH[0,0] := 1 * aa;
-    MH[1,1] := 1 * bb;
-    MH[2,2] := 1 * cc;
-    MH[3,3] := 1;
-
-    ProjecaoOrtografica(MC, MH, canvasCenterX, canvasCenterY);
-  end;
+    MTransform[0,0] := 1 * aa;
+    MTransform[1,1] := 1 * bb;
+    MTransform[2,2] := 1 * cc;
+  end
 
   // Escala Global
-  if RadioButton2.Checked and flagOpcao8 then
+  else if RadioButton2.Checked then
   begin
     aa := StrToFloat(Edit8.Text);
-
-    canvasCenterX := Image1.Width div 2;
-    canvasCenterY := Image1.Height div 2;
-
-      SetLength(MC, 1, 4);
-      SetLength(MH, 4, 4);
-
-      for a := 0 to 3 do
-      begin
-        for b := 0 to 3 do
-        begin
-          MH[a,b] := 0;
-        end;
-      end;
-      MH[0,0] := 1 / aa;
-      MH[1,1] := 1 / aa;
-      MH[2,2] := 1 / aa;
-      MH[3,3] := 1;
-
-    ProjecaoOrtografica(MC, MH, canvasCenterX, canvasCenterY);
-
-  end;
+    MTransform[0,0] := 1 / aa;
+    MTransform[1,1] := 1 / aa;
+    MTransform[2,2] := 1 / aa;
+  end
 
   // Translação
-  if RadioButton3.Checked and flagOpcao8 then
+  else if RadioButton3.Checked then
   begin
     aa := StrToFloat(Edit9.Text);
     bb := StrToFloat(Edit10.Text);
     cc := StrToFloat(Edit11.Text);
-
-    canvasCenterX := Image1.Width div 2;
-    canvasCenterY := Image1.Height div 2;
-
-
-      SetLength(MC, 1, 4);
-      SetLength(MH, 4, 4);
-      for a := 0 to 3 do
-      begin
-        for b := 0 to 3 do
-        begin
-          MH[a,b] := 0;
-        end;
-      end;
-      MH[0,0] := 1;
-      MH[1,1] := 1;
-      MH[2,2] := 1;
-      MH[3,3] := 1;
-      MH[3,0] := aa;
-      MH[3,1] := bb;
-      MH[3,2] := cc;
-
-      ProjecaoOrtografica(MC, MH, canvasCenterX, canvasCenterY);
-    end;
+    MTransform[3,0] := aa;
+    MTransform[3,1] := bb;
+    MTransform[3,2] := cc;
+  end
 
   // Rotação em torno eixos na origem
-  if RadioButton4.Checked and flagOpcao8 then
+  else if RadioButton4.Checked then
   begin
     aa := StrToFloat(Edit13.Text) * Pi / 180;
-
-    canvasCenterX := Image1.Width div 2;
-    canvasCenterY := Image1.Height div 2;
-
+    if (Edit12.Text = 'X') or (Edit12.Text = 'x') then
     begin
-      SetLength(MC, 1, 4);
-      SetLength(MH, 4, 4);
-      SetLength(MHO, 4, 4);
-      SetLength(MResultado, 1, 4);
-      SetLength(MResultadoO, 1, 4);
-      for a := 0 to 3 do
-      begin
-        for b := 0 to 3 do
-        begin
-          MH[a,b] := 0;
-          MHO[a,b] := 0;
-        end;
-      end;
-      MH[0,0] := 1;
-      MH[1,1] := 1;
-      MH[2,2] := 1;
-      MH[3,3] := 1;
-
-      MHO[0,0] := 1;
-      MHO[1,1] := 1;
-      MHO[2,2] := 1;
-      MHO[3,3] := 1;
-      if (Edit12.Text = 'X') or (Edit12.Text = 'x') then
-      begin
-        MHO[1,1] := cos(aa);
-        MHO[1,2] := sin(aa);
-        MHO[2,1] := -sin(aa);
-        MHO[2,2] := cos(aa);
-      end;
-
-      if (Edit12.Text = 'Y') or (Edit12.Text = 'y') then
-      begin
-        MHO[0,0] := cos(aa);
-        MHO[0,2] := -sin(aa);
-        MHO[2,0] := sin(aa);
-        MHO[2,2] := cos(aa);
-      end;
-
-      if (Edit12.Text = 'Z') or (Edit12.Text = 'z') then
-      begin
-        MHO[0,0] := cos(aa);
-        MHO[0,1] := sin(aa);
-        MHO[1,0] := -sin(aa);
-        MHO[1,1] := cos(aa);
-      end;
-
-      //Parte baixo (0,0,0)-(100,0,0)
-      MC[0,0] := 0;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,0] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte baixo (100,0,0)-(100,0,100)
-      MC[0,0] := 100;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,2] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte baixo (0,0,100)-(100,0,100)
-      MC[0,0] := 0;
-      MC[0,1] := 0;
-      MC[0,2] := 100;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,0] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte baixo (0,0,0)-(0,0,100)
-      MC[0,0] := 0;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,2] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte vertical (0,0,0)-(0,100,0)
-      MC[0,0] := 0;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,1] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte vertical (0,0,100)-(0,100,100)
-      MC[0,0] := 0;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,1] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte vertical (100,0,0)-(100,100,0)
-      MC[0,0] := 100;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,1] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte vertical (100,0,100)-(100,100,100)
-      MC[0,0] := 100;
-      MC[0,1] := 0;
-      MC[0,2] := 100;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,1] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior (0,100,0)-(0,100,100)
-      MC[0,0] := 0;
-      MC[0,1] := 100;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,2] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior (100,100,0)-(100,100,100)
-      MC[0,0] := 100;
-      MC[0,1] := 100;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,2] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior (50,150,0)-(50,150,100)
-      MC[0,0] := 50;
-      MC[0,1] := 150;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,2] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior diagonal (0,100,0)-(50,150,0)
-      MC[0,0] := 0;
-      MC[0,1] := 100;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 50 do
-      begin
-        MC[0,0] := a;
-        MC[0,1] := 100 + a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior diagonal (0,100,100)-(50,150,100)
-      MC[0,0] := 0;
-      MC[0,1] := 100;
-      MC[0,2] := 100;
-      MC[0,3] := 1;
-      for a := 0 to 50 do
-      begin
-        MC[0,0] := a;
-        MC[0,1] := 100 + a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior diagonal (50,150,0)-(100,100,0)
-      MC[0,0] := 50;
-      MC[0,1] := 150;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 50 do
-      begin
-        MC[0,0] := 50 + a;
-        MC[0,1] := 150 - a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior diagonal (50,150,100)-(100,100,100)
-      MC[0,0] := 50;
-      MC[0,1] := 150;
-      MC[0,2] := 100;
-      MC[0,3] := 1;
-      for a := 0 to 50 do
-      begin
-        MC[0,0] := 50 + a;
-        MC[0,1] := 150 - a;
-        for b := 0 to 3 do
-        begin
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHO, MResultadoO);
-        MultiplicarMatrizes(MResultadoO, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      end;
+      MTransform[1,1] := cos(aa); MTransform[1,2] := sin(aa);
+      MTransform[2,1] := -sin(aa); MTransform[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Y') or (Edit12.Text = 'y') then
+    begin
+      MTransform[0,0] := cos(aa); MTransform[0,2] := -sin(aa);
+      MTransform[2,0] := sin(aa); MTransform[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Z') or (Edit12.Text = 'z') then
+    begin
+      MTransform[0,0] := cos(aa); MTransform[0,1] := sin(aa);
+      MTransform[1,0] := -sin(aa); MTransform[1,1] := cos(aa);
     end;
+  end
 
   // Rotação em torno eixos no centro objeto
-  if RadioButton5.Checked and flagOpcao8 then
+  else if RadioButton5.Checked then
   begin
-    cx := 50;
-    cy := 70;
-    cz := 50;
+    cx := 50; cy := 70; cz := 50;
     aa := StrToFloat(Edit13.Text) * Pi / 180;
 
-    canvasCenterX := Image1.Width div 2;
-    canvasCenterY := Image1.Height div 2;
+    for a := 0 to 3 do for b := 0 to 3 do MHO[a,b] := 0.0;
+    MHO[0,0] := 1.0; MHO[1,1] := 1.0; MHO[2,2] := 1.0; MHO[3,3] := 1.0;
+    for a := 0 to 3 do for b := 0 to 3 do MHTPos[a,b] := 0.0;
+    MHTPos[0,0] := 1.0; MHTPos[1,1] := 1.0; MHTPos[2,2] := 1.0; MHTPos[3,3] := 1.0;
+    for a := 0 to 3 do for b := 0 to 3 do MHTNeg[a,b] := 0.0;
+    MHTNeg[0,0] := 1.0; MHTNeg[1,1] := 1.0; MHTNeg[2,2] := 1.0; MHTNeg[3,3] := 1.0;
 
+    if (Edit12.Text = 'X') or (Edit12.Text = 'x') then
     begin
-      SetLength(MC, 1, 4);
-      SetLength(MH, 4, 4);
-      SetLength(MHO, 4, 4);
-      SetLength(MHTPos, 4, 4);
-      SetLength(MHTNeg, 4, 4);
-      SetLength(MResultado, 1, 4);
-      SetLength(MResultadoO, 1, 4);
-      SetLength(MResultadoT, 1, 4);
-      for a := 0 to 3 do
-      begin
-        for b := 0 to 3 do
-        begin
-          MH[a,b] := 0;
-          MHO[a,b] := 0;
-          MHTPos[a,b] := 0;
-          MHTNeg[a,b] := 0;
-        end;
-      end;
-      MH[0,0] := 1;
-      MH[1,1] := 1;
-      MH[2,2] := 1;
-      MH[3,3] := 1;
-
-      MHO[0,0] := 1;
-      MHO[1,1] := 1;
-      MHO[2,2] := 1;
-      MHO[3,3] := 1;
-
-      MHTPos[0,0] := 1;
-      MHTPos[1,1] := 1;
-      MHTPos[2,2] := 1;
-      MHTPos[3,3] := 1;
-
-      MHTNeg[0,0] := 1;
-      MHTNeg[1,1] := 1;
-      MHTNeg[2,2] := 1;
-      MHTNeg[3,3] := 1;
-
-      if (Edit12.Text = 'X') or (Edit12.Text = 'x') then
-      begin
-        MHO[1,1] := cos(aa);
-        MHO[1,2] := sin(aa);
-        MHO[2,1] := -sin(aa);
-        MHO[2,2] := cos(aa);
-      end;
-
-      if (Edit12.Text = 'Y') or (Edit12.Text = 'y') then
-      begin
-        MHO[0,0] := cos(aa);
-        MHO[0,2] := -sin(aa);
-        MHO[2,0] := sin(aa);
-        MHO[2,2] := cos(aa);
-      end;
-
-      if (Edit12.Text = 'Z') or (Edit12.Text = 'z') then
-      begin
-        MHO[0,0] := cos(aa);
-        MHO[0,1] := sin(aa);
-        MHO[1,0] := -sin(aa);
-        MHO[1,1] := cos(aa);
-      end;
-
-      MHTPos[3,0] := cx;
-      MHTPos[3,1] := cy;
-      MHTPos[3,2] := cz;
-
-      MHTNeg[3,0] := -cx;
-      MHTNeg[3,1] := -cy;
-      MHTNeg[3,2] := -cz;
-
-      //Parte baixo (0,0,0)-(100,0,0)
-      MC[0,0] := 0;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,0] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte baixo (100,0,0)-(100,0,100)
-      MC[0,0] := 100;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,2] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte baixo (0,0,100)-(100,0,100)
-      MC[0,0] := 0;
-      MC[0,1] := 0;
-      MC[0,2] := 100;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,0] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte baixo (0,0,0)-(0,0,100)
-      MC[0,0] := 0;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,2] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte vertical (0,0,0)-(0,100,0)
-      MC[0,0] := 0;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,1] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte vertical (0,0,100)-(0,100,100)
-      MC[0,0] := 0;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,1] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte vertical (100,0,0)-(100,100,0)
-      MC[0,0] := 100;
-      MC[0,1] := 0;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,1] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte vertical (100,0,100)-(100,100,100)
-      MC[0,0] := 100;
-      MC[0,1] := 0;
-      MC[0,2] := 100;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,1] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior (0,100,0)-(0,100,100)
-      MC[0,0] := 0;
-      MC[0,1] := 100;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,2] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior (100,100,0)-(100,100,100)
-      MC[0,0] := 100;
-      MC[0,1] := 100;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,2] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior (50,150,0)-(50,150,100)
-      MC[0,0] := 50;
-      MC[0,1] := 150;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 100 do
-      begin
-        MC[0,2] := a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior diagonal (0,100,0)-(50,150,0)
-      MC[0,0] := 0;
-      MC[0,1] := 100;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 50 do
-      begin
-        MC[0,0] := a;
-        MC[0,1] := 100 + a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior diagonal (0,100,100)-(50,150,100)
-      MC[0,0] := 0;
-      MC[0,1] := 100;
-      MC[0,2] := 100;
-      MC[0,3] := 1;
-      for a := 0 to 50 do
-      begin
-        MC[0,0] := a;
-        MC[0,1] := 100 + a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior diagonal (50,150,0)-(100,100,0)
-      MC[0,0] := 50;
-      MC[0,1] := 150;
-      MC[0,2] := 0;
-      MC[0,3] := 1;
-      for a := 0 to 50 do
-      begin
-        MC[0,0] := 50 + a;
-        MC[0,1] := 150 - a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      //Parte superior diagonal (50,150,100)-(100,100,100)
-      MC[0,0] := 50;
-      MC[0,1] := 150;
-      MC[0,2] := 100;
-      MC[0,3] := 1;
-      for a := 0 to 50 do
-      begin
-        MC[0,0] := 50 + a;
-        MC[0,1] := 150 - a;
-        for b := 0 to 3 do
-        begin
-          MResultadoT[0,b] := 0;
-          MResultadoO[0,b] := 0;
-          MResultado[0,b] := 0;
-
-        end;
-        MultiplicarMatrizes(MC, MHTNeg, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MHO, MResultadoO);
-        for b := 0 to 3 do
-        begin
-            MResultadoT[0,b] := 0;
-        end;
-        MultiplicarMatrizes(MResultadoO, MHTPos, MResultadoT);
-        MultiplicarMatrizes(MResultadoT, MH, MResultado);
-        Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-      end;
-
-      end;
+      MHO[1,1] := cos(aa); MHO[1,2] := sin(aa);
+      MHO[2,1] := -sin(aa); MHO[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Y') or (Edit12.Text = 'y') then
+    begin
+      MHO[0,0] := cos(aa); MHO[0,2] := -sin(aa);
+      MHO[2,0] := sin(aa); MHO[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Z') or (Edit12.Text = 'z') then
+    begin
+      MHO[0,0] := cos(aa); MHO[0,1] := sin(aa);
+      MHO[1,0] := -sin(aa); MHO[1,1] := cos(aa);
     end;
+
+    MHTPos[3,0] := cx; MHTPos[3,1] := cy; MHTPos[3,2] := cz;
+    MHTNeg[3,0] := -cx; MHTNeg[3,1] := -cy; MHTNeg[3,2] := -cz;
+
+    MultiplicarMatrizes4x4(MHTNeg, MHO, MTemp);
+    MultiplicarMatrizes4x4(MTemp, MHTPos, MTransform);
+  end
 
   // Shearing
-  if RadioButton6.Checked and FlagOpcao8 then
+  else if RadioButton6.Checked then
   begin
-    aa := StrToFloat(Edit14.Text);
-    bb := StrToFloat(Edit15.Text);
-    cc := StrToFloat(Edit16.Text);
-    dd := StrToFloat(Edit17.Text);
-    ee := StrToFloat(Edit18.Text);
-    ff := StrToFloat(Edit19.Text);
-    gg := StrToFloat(Edit20.Text);
-    hh := StrToFloat(Edit21.Text);
-    ii := StrToFloat(Edit22.Text);
-    jj := StrToFloat(Edit23.Text);
-    kk := StrToFloat(Edit24.Text);
-    ll := StrToFloat(Edit25.Text);
-    mm := StrToFloat(Edit26.Text);
-    nn := StrToFloat(Edit27.Text);
-    oo := StrToFloat(Edit28.Text);
-    pp := StrToFloat(Edit29.Text);
+    aa := StrToFloat(Edit14.Text); bb := StrToFloat(Edit15.Text);
+    cc := StrToFloat(Edit16.Text); dd := StrToFloat(Edit17.Text);
+    ee := StrToFloat(Edit18.Text); ff := StrToFloat(Edit19.Text);
+    gg := StrToFloat(Edit20.Text); hh := StrToFloat(Edit21.Text);
+    ii := StrToFloat(Edit22.Text); jj := StrToFloat(Edit23.Text);
+    kk := StrToFloat(Edit24.Text); ll := StrToFloat(Edit25.Text);
+    mm := StrToFloat(Edit26.Text); nn := StrToFloat(Edit27.Text);
+    oo := StrToFloat(Edit28.Text); pp := StrToFloat(Edit29.Text);
 
+    MTransform[0,0] := 1 * aa; MTransform[0,1] := 1 * bb; MTransform[0,2] := 1 * cc; MTransform[0,3] := 1 * dd;
+    MTransform[1,0] := 1 * ee; MTransform[1,1] := 1 * ff; MTransform[1,2] := 1 * gg; MTransform[1,3] := 1 * hh;
+    MTransform[2,0] := 1 * ii; MTransform[2,1] := 1 * jj; MTransform[2,2] := 1 * kk; MTransform[2,3] := 1 * ll;
+    MTransform[3,0] := 1 * mm; MTransform[3,1] := 1 * nn; MTransform[3,2] := 1 * oo; MTransform[3,3] := 1 / pp;
+  end;
+
+  // 3. DECIDIR O QUE DESENHAR COM BASE NO CHECKBOX
+
+  // Limpa a tela antes de desenhar
+  Image1.Canvas.Brush.Color := clBlack;
+  Image1.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
+
+  if RotacionarCasinha.Checked then
+  begin
+    // DESENHA A CASINHA com a MTransform
     canvasCenterX := Image1.Width div 2;
     canvasCenterY := Image1.Height div 2;
+    SetLength(MC_Casinha, 1, 4);
 
-    SetLength(MC, 1, 4);
-    SetLength(MH, 4, 4);
-    for a := 0 to 3 do
-    begin
-         for b := 0 to 3 do
-         begin
-              MH[a,b] := 0;
-         end;
-    end;
-    MH[0,0] := 1 * aa;
-    MH[0,1] := 1 * bb;
-    MH[0,2] := 1 * cc;
-    MH[0,3] := 1 * dd;
+    // Na projeção ortográfica da casinha, zeramos o Z
+    MTransform[0,2] := 0;
+    MTransform[1,2] := 0;
+    MTransform[2,2] := 0; // Z não é usado
 
-    MH[1,0] := 1 * ee;
-    MH[1,1] := 1 * ff;
-    MH[1,2] := 1 * gg;
-    MH[1,3] := 1 * hh;
+    ProjecaoOrtografica(MC_Casinha, MTransform, canvasCenterX, canvasCenterY);
 
-    MH[2,0] := 1 * ii;
-    MH[2,1] := 1 * jj;
-    MH[2,2] := 1 * kk;
-    MH[2,3] := 1 * ll;
-
-    MH[3,0] := 1 * mm;
-    MH[3,1] := 1 * nn;
-    MH[3,2] := 1 * oo;
-    MH[3,3] := 1 / pp;
-
-
-    ProjecaoOrtografica(MC, MH, canvasCenterX, canvasCenterY);
+    SetLength(MC_Casinha, 0, 0);
+  end
+  else
+  begin
+    // DESENHA OS OBJETOS Z-BUFFER com a MTransform
+    desenharZBufferObjetos(MTransform);
   end;
+
+  // 4. LIMPAR MATRIZES
+  SetLength(MTransform, 0, 0);
+  SetLength(MHO, 0, 0);
+  SetLength(MHTPos, 0, 0);
+  SetLength(MHTNeg, 0, 0);
+  SetLength(MTemp, 0, 0);
+end;
+
+procedure TForm1.RotacionarCasinhaChange(Sender: TObject);
+begin
 
 end;
 
@@ -1907,16 +1126,22 @@ end;
 
 procedure TForm1.MenuItem10Click(Sender: TObject);
 var
-  a, aa, b, c : Integer;
-  MC, MH, MResultado : array of array of Double;
+   a, b : Integer;
+  MC, MH, MResultado : TMatriz; // array of array of Double; <-- Use TMatriz
   canvasCenterX, canvasCenterY : Integer;
 begin
-  canvasCenterX := Image1.Width div 2;
-  canvasCenterY := Image1.Height div 2;
+  // Limpa a tela
+    Image1.Canvas.Brush.Color := clBlack;
+    Image1.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
 
-  op := 8;
-  flagOpcao8 := True;
-  begin
+    canvasCenterX := Image1.Width div 2;
+    canvasCenterY := Image1.Height div 2;
+
+    op := 8;
+    flagOpcao8 := True;
+    RotacionarCasinha.Checked := True; // <-- Define o CheckBox
+
+    // Prepara matrizes
     SetLength(MC, 1, 4);
     SetLength(MH, 4, 4);
     SetLength(MResultado, 1, 4);
@@ -1927,195 +1152,20 @@ begin
         MH[a,b] := 0;
       end;
     end;
+
+    // Matriz Identidade para Projeção Ortogonal (z=0)
     MH[0,0] := 1;
     MH[1,1] := 1;
+    // MH[2,2] := 0; // Projeção z=0
     MH[3,3] := 1;
 
-    //Parte baixo (0,0,0)-(100,0,0)
-    MC[0,0] := 0;
-    MC[0,1] := 0;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,0] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
+    // Desenha a casinha na posição inicial
+    ProjecaoOrtografica(MC, MH, canvasCenterX, canvasCenterY);
 
-    //Parte baixo (100,0,0)-(100,0,100)
-    MC[0,0] := 100;
-    MC[0,1] := 0;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,2] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte baixo (0,0,100)-(100,0,100)
-    MC[0,0] := 0;
-    MC[0,1] := 0;
-    MC[0,2] := 100;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,0] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte baixo (0,0,0)-(0,0,100)
-    MC[0,0] := 0;
-    MC[0,1] := 0;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,2] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte vertical (0,0,0)-(0,100,0)
-    MC[0,0] := 0;
-    MC[0,1] := 0;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,1] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte vertical (0,0,100)-(0,100,100)
-    MC[0,0] := 0;
-    MC[0,1] := 0;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,1] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte vertical (100,0,0)-(100,100,0)
-    MC[0,0] := 100;
-    MC[0,1] := 0;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,1] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte vertical (100,0,100)-(100,100,100)
-    MC[0,0] := 100;
-    MC[0,1] := 0;
-    MC[0,2] := 100;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,1] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte superior (0,100,0)-(0,100,100)
-    MC[0,0] := 0;
-    MC[0,1] := 100;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,2] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte superior (100,100,0)-(100,100,100)
-    MC[0,0] := 100;
-    MC[0,1] := 100;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,2] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte superior (50,150,0)-(50,150,100)
-    MC[0,0] := 50;
-    MC[0,1] := 150;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 100 do
-    begin
-      MC[0,2] := a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte superior diagonal (0,100,0)-(50,150,0)
-    MC[0,0] := 0;
-    MC[0,1] := 100;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 50 do
-    begin
-      MC[0,0] := a;
-      MC[0,1] := 100 + a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte superior diagonal (0,100,100)-(50,150,100)
-    MC[0,0] := 0;
-    MC[0,1] := 100;
-    MC[0,2] := 100;
-    MC[0,3] := 1;
-    for a := 0 to 50 do
-    begin
-      MC[0,0] := a;
-      MC[0,1] := 100 + a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte superior diagonal (50,150,0)-(100,100,0)
-    MC[0,0] := 50;
-    MC[0,1] := 150;
-    MC[0,2] := 0;
-    MC[0,3] := 1;
-    for a := 0 to 50 do
-    begin
-      MC[0,0] := 50 + a;
-      MC[0,1] := 150 - a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-    //Parte superior diagonal (50,150,100)-(100,100,100)
-    MC[0,0] := 50;
-    MC[0,1] := 150;
-    MC[0,2] := 100;
-    MC[0,3] := 1;
-    for a := 0 to 50 do
-    begin
-      MC[0,0] := 50 + a;
-      MC[0,1] := 150 - a;
-      MultiplicarMatrizes(MC, MH, MResultado);
-      Image1.Canvas.Pixels[canvasCenterX + Round(MResultado[0,0]), canvasCenterY - Round(MResultado[0,1])] := clred;
-    end;
-
-  end;
+    // Limpa matrizes
+    SetLength(MC, 0, 0);
+    SetLength(MH, 0, 0);
+    SetLength(MResultado, 0, 0);
 end;
 
 procedure TForm1.MenuItem11Click(Sender: TObject);
@@ -2495,13 +1545,17 @@ begin
 end;
 
 procedure TForm1.MenuItem17Click(Sender: TObject);
+var
+  MTransform: TMatriz; // Matriz identidade para o desenho inicial
+  a, b: Integer;
 begin
-  // Define a operação para "Z-Buffer" (assumindo op=12)
+  // Define a operação para "Z-Buffer"
   op := 12;
   // Habilita os botões de transformação
   flagOpcao8 := True;
+  RotacionarCasinha.Checked := False; // <-- Define o CheckBox
 
-  // Limpa os RadioButtons para desenhar o estado inicial (identidade)
+  // Limpa os RadioButtons para desenhar o estado inicial
   RadioButton1.Checked := False;
   RadioButton2.Checked := False;
   RadioButton3.Checked := False;
@@ -2509,20 +1563,28 @@ begin
   RadioButton5.Checked := False;
   RadioButton6.Checked := False;
 
-  // Desenha o estado inicial
-  desenharZBufferObjetos;
+  // Cria uma Matriz Identidade para o desenho inicial
+  SetLength(MTransform, 4, 4);
+  for a := 0 to 3 do for b := 0 to 3 do MTransform[a,b] := 0.0;
+  MTransform[0,0] := 1.0;
+  MTransform[1,1] := 1.0;
+  MTransform[2,2] := 1.0;
+  MTransform[3,3] := 1.0;
+
+  // Desenha o estado inicial dos objetos Z-Buffer
+  desenharZBufferObjetos(MTransform);
+
+  SetLength(MTransform, 0, 0);
 end;
-procedure TForm1.desenharZBufferObjetos;
+procedure TForm1.desenharZBufferObjetos(const MTransform: TMatriz);
 var
-  // Variáveis de transformação (copiadas de Button1Click)
-  a, b, cx, cy, cz : Integer;
-  MC, MH, MHO, MHTPos, MHTNeg, MResultado, MTransform, MTemp : TMatriz;
-  aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp : Double;
 
   // Variáveis do Z-Buffer
+  // ESTAS VARIÁVEIS PERMANECEM:
+  MC, MResultado: TMatriz; // <-- MResultado PERMANECE
   ImgWidth, ImgHeight, canvasCenterX, canvasCenterY, px, py : Integer;
   x_idx, y_idx: Integer;
-  x_obj, y_obj, z_obj, t_obj, a_obj, b_obj, z_prof: Double; // <-- ADICIONADO b_obj
+  x_obj, y_obj, z_obj, t_obj, a_obj, b_obj, z_prof: Double;
 
 begin
   // 1. Inicializar Canvas e Z-Buffer
@@ -2541,146 +1603,8 @@ begin
     for x_idx := 0 to ImgWidth - 1 do
       ZBuffer[y_idx, x_idx] := Math.Infinity;
 
-  // 2. Preparar Matrizes
-  SetLength(MTransform, 4, 4);
-  SetLength(MH, 4, 4);
-  SetLength(MHO, 4, 4);
-  SetLength(MHTPos, 4, 4);
-  SetLength(MHTNeg, 4, 4);
-  SetLength(MTemp, 4, 4);
   SetLength(MC, 1, 4);
   SetLength(MResultado, 1, 4);
-
-  // Define MTransform como Matriz Identidade por padrão
-  for a := 0 to 3 do for b := 0 to 3 do MTransform[a,b] := 0.0;
-  MTransform[0,0] := 1.0;
-  MTransform[1,1] := 1.0;
-  MTransform[2,2] := 1.0; // Z é preservado para o buffer
-  MTransform[3,3] := 1.0;
-
-  // 3. Construir Matriz de Transformação (MTransform) com base nos RadioButtons
-  // (O seu código existente para RadioButton1 a RadioButton6 permanece aqui, sem alterações)
-
-  // Escala Local
-  if RadioButton1.Checked then
-  begin
-    aa := StrToFloat(Edit5.Text);
-    bb := StrToFloat(Edit6.Text);
-    cc := StrToFloat(Edit7.Text);
-    MTransform[0,0] := 1 * aa;
-    MTransform[1,1] := 1 * bb;
-    MTransform[2,2] := 1 * cc;
-  end
-
-  // Escala Global
-  else if RadioButton2.Checked then
-  begin
-    aa := StrToFloat(Edit8.Text);
-    MTransform[0,0] := 1 / aa;
-    MTransform[1,1] := 1 / aa;
-    MTransform[2,2] := 1 / aa;
-  end
-
-  // Translação
-  else if RadioButton3.Checked then
-  begin
-    aa := StrToFloat(Edit9.Text);
-    bb := StrToFloat(Edit10.Text);
-    cc := StrToFloat(Edit11.Text);
-    MTransform[3,0] := aa;
-    MTransform[3,1] := bb;
-    MTransform[3,2] := cc;
-  end
-
-  // Rotação em torno eixos na origem
-  else if RadioButton4.Checked then
-  begin
-    aa := StrToFloat(Edit13.Text) * Pi / 180;
-    // MTransform é a matriz de rotação (MHO no seu código)
-    if (Edit12.Text = 'X') or (Edit12.Text = 'x') then
-    begin
-      MTransform[1,1] := cos(aa);
-      MTransform[1,2] := sin(aa);
-      MTransform[2,1] := -sin(aa);
-      MTransform[2,2] := cos(aa);
-    end
-    else if (Edit12.Text = 'Y') or (Edit12.Text = 'y') then
-    begin
-      MTransform[0,0] := cos(aa);
-      MTransform[0,2] := -sin(aa);
-      MTransform[2,0] := sin(aa);
-      MTransform[2,2] := cos(aa);
-    end
-    else if (Edit12.Text = 'Z') or (Edit12.Text = 'z') then
-    begin
-      MTransform[0,0] := cos(aa);
-      MTransform[0,1] := sin(aa);
-      MTransform[1,0] := -sin(aa);
-      MTransform[1,1] := cos(aa);
-    end;
-  end
-
-  // Rotação em torno eixos no centro objeto
-  else if RadioButton5.Checked then
-  begin
-    // Para a rotação no centro, MTransform = Tneg * Rotação * Tpos
-    // (Valores do centro da "casinha", ajuste se necessário)
-    cx := 50; cy := 70; cz := 50;
-    aa := StrToFloat(Edit13.Text) * Pi / 180;
-
-    // Inicializa matrizes de Rotação (MHO) e Translação (MHTNeg, MHTPos)
-    for a := 0 to 3 do for b := 0 to 3 do MHO[a,b] := 0.0;
-    MHO[0,0] := 1.0; MHO[1,1] := 1.0; MHO[2,2] := 1.0; MHO[3,3] := 1.0;
-
-    for a := 0 to 3 do for b := 0 to 3 do MHTPos[a,b] := 0.0;
-    MHTPos[0,0] := 1.0; MHTPos[1,1] := 1.0; MHTPos[2,2] := 1.0; MHTPos[3,3] := 1.0;
-
-    for a := 0 to 3 do for b := 0 to 3 do MHTNeg[a,b] := 0.0;
-    MHTNeg[0,0] := 1.0; MHTNeg[1,1] := 1.0; MHTNeg[2,2] := 1.0; MHTNeg[3,3] := 1.0;
-
-    // Matriz de Rotação (MHO)
-    if (Edit12.Text = 'X') or (Edit12.Text = 'x') then
-    begin
-      MHO[1,1] := cos(aa); MHO[1,2] := sin(aa);
-      MHO[2,1] := -sin(aa); MHO[2,2] := cos(aa);
-    end
-    else if (Edit12.Text = 'Y') or (Edit12.Text = 'y') then
-    begin
-      MHO[0,0] := cos(aa); MHO[0,2] := -sin(aa);
-      MHO[2,0] := sin(aa); MHO[2,2] := cos(aa);
-    end
-    else if (Edit12.Text = 'Z') or (Edit12.Text = 'z') then
-    begin
-      MHO[0,0] := cos(aa); MHO[0,1] := sin(aa);
-      MHO[1,0] := -sin(aa); MHO[1,1] := cos(aa);
-    end;
-
-    // Matrizes de Translação
-    MHTPos[3,0] := cx; MHTPos[3,1] := cy; MHTPos[3,2] := cz;
-    MHTNeg[3,0] := -cx; MHTNeg[3,1] := -cy; MHTNeg[3,2] := -cz;
-
-    // MTransform = MHTNeg * MHO * MHTPos
-    MultiplicarMatrizes4x4(MHTNeg, MHO, MTemp);
-    MultiplicarMatrizes4x4(MTemp, MHTPos, MTransform);
-  end
-
-  // Shearing
-  else if RadioButton6.Checked then
-  begin
-    aa := StrToFloat(Edit14.Text); bb := StrToFloat(Edit15.Text);
-    cc := StrToFloat(Edit16.Text); dd := StrToFloat(Edit17.Text);
-    ee := StrToFloat(Edit18.Text); ff := StrToFloat(Edit19.Text);
-    gg := StrToFloat(Edit20.Text); hh := StrToFloat(Edit21.Text);
-    ii := StrToFloat(Edit22.Text); jj := StrToFloat(Edit23.Text);
-    kk := StrToFloat(Edit24.Text); ll := StrToFloat(Edit25.Text);
-    mm := StrToFloat(Edit26.Text); nn := StrToFloat(Edit27.Text);
-    oo := StrToFloat(Edit28.Text); pp := StrToFloat(Edit29.Text);
-
-    MTransform[0,0] := 1 * aa; MTransform[0,1] := 1 * bb; MTransform[0,2] := 1 * cc; MTransform[0,3] := 1 * dd;
-    MTransform[1,0] := 1 * ee; MTransform[1,1] := 1 * ff; MTransform[1,2] := 1 * gg; MTransform[1,3] := 1 * hh;
-    MTransform[2,0] := 1 * ii; MTransform[2,1] := 1 * jj; MTransform[2,2] := 1 * kk; MTransform[2,3] := 1 * ll;
-    MTransform[3,0] := 1 * mm; MTransform[3,1] := 1 * nn; MTransform[3,2] := 1 * oo; MTransform[3,3] := 1 / pp;
-  end;
 
 
   // 4. Desenhar Objetos com Z-Buffer
@@ -2945,12 +1869,6 @@ begin
   // Limpa matrizes (boa prática)
   SetLength(MC, 0, 0);
   SetLength(MResultado, 0, 0);
-  SetLength(MTransform, 0, 0);
-  SetLength(MH, 0, 0);
-  SetLength(MHO, 0, 0);
-  SetLength(MHTPos, 0, 0);
-  SetLength(MHTNeg, 0, 0);
-  SetLength(MTemp, 0, 0);
 
 end;
 procedure TForm1.MenuItem3Click(Sender: TObject);
