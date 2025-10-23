@@ -53,6 +53,7 @@ type
     MenuItem13: TMenuItem;
     MenuItem14: TMenuItem;
     MenuItem17: TMenuItem;
+    MenuItem16: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
@@ -82,6 +83,7 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure Label1Click(Sender: TObject);
     procedure MenuItem10Click(Sender: TObject);
+    procedure MenuItem11Click(Sender: TObject);
     procedure MenuItem12Click(Sender: TObject);
     procedure MenuItem13Click(Sender: TObject);
     procedure MenuItem14Click(Sender: TObject);
@@ -89,6 +91,7 @@ type
     procedure MenuItem16Click(Sender: TObject);
     procedure MenuItem16MeasureItem(Sender: TObject; ACanvas: TCanvas;
       var AWidth, AHeight: Integer);
+    procedure MenuItem17Click(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
@@ -110,11 +113,17 @@ type
     procedure desenhoAula16();
     procedure desenhoAula16B();
     function InverterCor(Cor: TColor): TColor;
-  private
+ // Adicionar novas procedures
+    procedure MultiplicarMatrizes4x4(const Matriz1, Matriz2: TMatriz; var MResultado: TMatriz);
+    procedure desenharZBufferObjetos;
 
+  private
+    ZBuffer: TMatriz; // Adicionar o Z-Buffer
   public
 
   end;
+
+
 
 
 var
@@ -188,6 +197,31 @@ end;
 procedure TForm1.Edit7Change(Sender: TObject);
 begin
 
+end;
+procedure TForm1.MultiplicarMatrizes4x4(const Matriz1, Matriz2: TMatriz; var MResultado: TMatriz);
+var
+  i, j, k: Integer;
+begin
+  // Garante que as matrizes tenham o tamanho 4x4
+  if (Length(Matriz1) <> 4) or (Length(Matriz2) <> 4) or
+     (Length(MResultado) <> 4) or (Length(Matriz1[0]) <> 4) or
+     (Length(Matriz2[0]) <> 4) or (Length(MResultado[0]) <> 4) then
+  begin
+    // Idealmente, trataria este erro.
+    Exit;
+  end;
+
+  for i := 0 to 3 do
+  begin
+    for j := 0 to 3 do
+    begin
+      MResultado[i, j] := 0;
+      for k := 0 to 3 do
+      begin
+        MResultado[i, j] := MResultado[i, j] + Matriz1[i, k] * Matriz2[k, j];
+      end;
+    end;
+  end;
 end;
 
 procedure TForm1.MultiplicarMatrizes(const Matriz1, Matriz2: TMatriz; var MResultado: TMatriz);
@@ -2084,6 +2118,12 @@ begin
   end;
 end;
 
+procedure TForm1.MenuItem11Click(Sender: TObject);
+begin
+
+end;
+
+
 //Quando converti da imagem para desenho ficou bem pequeno, então usei uma llm para aumentar a escala
 procedure TForm1.desenhoAula16();
 var
@@ -2454,6 +2494,465 @@ begin
 
 end;
 
+procedure TForm1.MenuItem17Click(Sender: TObject);
+begin
+  // Define a operação para "Z-Buffer" (assumindo op=12)
+  op := 12;
+  // Habilita os botões de transformação
+  flagOpcao8 := True;
+
+  // Limpa os RadioButtons para desenhar o estado inicial (identidade)
+  RadioButton1.Checked := False;
+  RadioButton2.Checked := False;
+  RadioButton3.Checked := False;
+  RadioButton4.Checked := False;
+  RadioButton5.Checked := False;
+  RadioButton6.Checked := False;
+
+  // Desenha o estado inicial
+  desenharZBufferObjetos;
+end;
+procedure TForm1.desenharZBufferObjetos;
+var
+  // Variáveis de transformação (copiadas de Button1Click)
+  a, b, cx, cy, cz : Integer;
+  MC, MH, MHO, MHTPos, MHTNeg, MResultado, MTransform, MTemp : TMatriz;
+  aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp : Double;
+
+  // Variáveis do Z-Buffer
+  ImgWidth, ImgHeight, canvasCenterX, canvasCenterY, px, py : Integer;
+  x_idx, y_idx: Integer;
+  x_obj, y_obj, z_obj, t_obj, a_obj, b_obj, z_prof: Double; // <-- ADICIONADO b_obj
+
+begin
+  // 1. Inicializar Canvas e Z-Buffer
+  ImgWidth := Image1.Width;
+  ImgHeight := Image1.Height;
+  canvasCenterX := ImgWidth div 2;
+  canvasCenterY := ImgHeight div 2;
+
+  // Limpa a tela para preto (Fundo = preto)
+  Image1.Canvas.Brush.Color := clBlack;
+  Image1.Canvas.FillRect(0, 0, ImgWidth, ImgHeight);
+
+  // Inicializa o Z-Buffer com 'Infinito' (o maior valor possível)
+  SetLength(ZBuffer, ImgHeight, ImgWidth);
+  for y_idx := 0 to ImgHeight - 1 do
+    for x_idx := 0 to ImgWidth - 1 do
+      ZBuffer[y_idx, x_idx] := Math.Infinity;
+
+  // 2. Preparar Matrizes
+  SetLength(MTransform, 4, 4);
+  SetLength(MH, 4, 4);
+  SetLength(MHO, 4, 4);
+  SetLength(MHTPos, 4, 4);
+  SetLength(MHTNeg, 4, 4);
+  SetLength(MTemp, 4, 4);
+  SetLength(MC, 1, 4);
+  SetLength(MResultado, 1, 4);
+
+  // Define MTransform como Matriz Identidade por padrão
+  for a := 0 to 3 do for b := 0 to 3 do MTransform[a,b] := 0.0;
+  MTransform[0,0] := 1.0;
+  MTransform[1,1] := 1.0;
+  MTransform[2,2] := 1.0; // Z é preservado para o buffer
+  MTransform[3,3] := 1.0;
+
+  // 3. Construir Matriz de Transformação (MTransform) com base nos RadioButtons
+  // (O seu código existente para RadioButton1 a RadioButton6 permanece aqui, sem alterações)
+
+  // Escala Local
+  if RadioButton1.Checked then
+  begin
+    aa := StrToFloat(Edit5.Text);
+    bb := StrToFloat(Edit6.Text);
+    cc := StrToFloat(Edit7.Text);
+    MTransform[0,0] := 1 * aa;
+    MTransform[1,1] := 1 * bb;
+    MTransform[2,2] := 1 * cc;
+  end
+
+  // Escala Global
+  else if RadioButton2.Checked then
+  begin
+    aa := StrToFloat(Edit8.Text);
+    MTransform[0,0] := 1 / aa;
+    MTransform[1,1] := 1 / aa;
+    MTransform[2,2] := 1 / aa;
+  end
+
+  // Translação
+  else if RadioButton3.Checked then
+  begin
+    aa := StrToFloat(Edit9.Text);
+    bb := StrToFloat(Edit10.Text);
+    cc := StrToFloat(Edit11.Text);
+    MTransform[3,0] := aa;
+    MTransform[3,1] := bb;
+    MTransform[3,2] := cc;
+  end
+
+  // Rotação em torno eixos na origem
+  else if RadioButton4.Checked then
+  begin
+    aa := StrToFloat(Edit13.Text) * Pi / 180;
+    // MTransform é a matriz de rotação (MHO no seu código)
+    if (Edit12.Text = 'X') or (Edit12.Text = 'x') then
+    begin
+      MTransform[1,1] := cos(aa);
+      MTransform[1,2] := sin(aa);
+      MTransform[2,1] := -sin(aa);
+      MTransform[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Y') or (Edit12.Text = 'y') then
+    begin
+      MTransform[0,0] := cos(aa);
+      MTransform[0,2] := -sin(aa);
+      MTransform[2,0] := sin(aa);
+      MTransform[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Z') or (Edit12.Text = 'z') then
+    begin
+      MTransform[0,0] := cos(aa);
+      MTransform[0,1] := sin(aa);
+      MTransform[1,0] := -sin(aa);
+      MTransform[1,1] := cos(aa);
+    end;
+  end
+
+  // Rotação em torno eixos no centro objeto
+  else if RadioButton5.Checked then
+  begin
+    // Para a rotação no centro, MTransform = Tneg * Rotação * Tpos
+    // (Valores do centro da "casinha", ajuste se necessário)
+    cx := 50; cy := 70; cz := 50;
+    aa := StrToFloat(Edit13.Text) * Pi / 180;
+
+    // Inicializa matrizes de Rotação (MHO) e Translação (MHTNeg, MHTPos)
+    for a := 0 to 3 do for b := 0 to 3 do MHO[a,b] := 0.0;
+    MHO[0,0] := 1.0; MHO[1,1] := 1.0; MHO[2,2] := 1.0; MHO[3,3] := 1.0;
+
+    for a := 0 to 3 do for b := 0 to 3 do MHTPos[a,b] := 0.0;
+    MHTPos[0,0] := 1.0; MHTPos[1,1] := 1.0; MHTPos[2,2] := 1.0; MHTPos[3,3] := 1.0;
+
+    for a := 0 to 3 do for b := 0 to 3 do MHTNeg[a,b] := 0.0;
+    MHTNeg[0,0] := 1.0; MHTNeg[1,1] := 1.0; MHTNeg[2,2] := 1.0; MHTNeg[3,3] := 1.0;
+
+    // Matriz de Rotação (MHO)
+    if (Edit12.Text = 'X') or (Edit12.Text = 'x') then
+    begin
+      MHO[1,1] := cos(aa); MHO[1,2] := sin(aa);
+      MHO[2,1] := -sin(aa); MHO[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Y') or (Edit12.Text = 'y') then
+    begin
+      MHO[0,0] := cos(aa); MHO[0,2] := -sin(aa);
+      MHO[2,0] := sin(aa); MHO[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Z') or (Edit12.Text = 'z') then
+    begin
+      MHO[0,0] := cos(aa); MHO[0,1] := sin(aa);
+      MHO[1,0] := -sin(aa); MHO[1,1] := cos(aa);
+    end;
+
+    // Matrizes de Translação
+    MHTPos[3,0] := cx; MHTPos[3,1] := cy; MHTPos[3,2] := cz;
+    MHTNeg[3,0] := -cx; MHTNeg[3,1] := -cy; MHTNeg[3,2] := -cz;
+
+    // MTransform = MHTNeg * MHO * MHTPos
+    MultiplicarMatrizes4x4(MHTNeg, MHO, MTemp);
+    MultiplicarMatrizes4x4(MTemp, MHTPos, MTransform);
+  end
+
+  // Shearing
+  else if RadioButton6.Checked then
+  begin
+    aa := StrToFloat(Edit14.Text); bb := StrToFloat(Edit15.Text);
+    cc := StrToFloat(Edit16.Text); dd := StrToFloat(Edit17.Text);
+    ee := StrToFloat(Edit18.Text); ff := StrToFloat(Edit19.Text);
+    gg := StrToFloat(Edit20.Text); hh := StrToFloat(Edit21.Text);
+    ii := StrToFloat(Edit22.Text); jj := StrToFloat(Edit23.Text);
+    kk := StrToFloat(Edit24.Text); ll := StrToFloat(Edit25.Text);
+    mm := StrToFloat(Edit26.Text); nn := StrToFloat(Edit27.Text);
+    oo := StrToFloat(Edit28.Text); pp := StrToFloat(Edit29.Text);
+
+    MTransform[0,0] := 1 * aa; MTransform[0,1] := 1 * bb; MTransform[0,2] := 1 * cc; MTransform[0,3] := 1 * dd;
+    MTransform[1,0] := 1 * ee; MTransform[1,1] := 1 * ff; MTransform[1,2] := 1 * gg; MTransform[1,3] := 1 * hh;
+    MTransform[2,0] := 1 * ii; MTransform[2,1] := 1 * jj; MTransform[2,2] := 1 * kk; MTransform[2,3] := 1 * ll;
+    MTransform[3,0] := 1 * mm; MTransform[3,1] := 1 * nn; MTransform[3,2] := 1 * oo; MTransform[3,3] := 1 / pp;
+  end;
+
+
+  // 4. Desenhar Objetos com Z-Buffer
+  MC[0, 3] := 1.0;
+
+  // Objeto 1 (Azul): z = x^2 + y
+  for x_idx := 10 to 30 do
+  begin
+    for y_idx := 20 to 40 do
+    begin
+      z_obj := (x_idx * x_idx) + y_idx;
+      MC[0,0] := x_idx;
+      MC[0,1] := y_idx;
+      MC[0,2] := z_obj;
+
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+      begin
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := clBlue;
+        end;
+      end;
+    end;
+  end;
+
+  // Objeto 2 (Vermelho): z = 3x - 2y + 5
+  for x_idx := 50 to 100 do
+  begin
+    for y_idx := 30 to 80 do
+    begin
+      z_obj := (3 * x_idx) - (2 * y_idx) + 5;
+      MC[0,0] := x_idx;
+      MC[0,1] := y_idx;
+      MC[0,2] := z_obj;
+
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+      begin
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := clRed;
+        end;
+      end;
+    end;
+  end;
+
+  // Objeto 3 (Amarelo): Paramétrico (Cone)
+  t_obj := 0;
+  while t_obj <= 50 do
+  begin
+    a_obj := 0;
+    while a_obj <= 2 * Pi do
+    begin
+      x_obj := 30 + cos(a_obj) * t_obj;
+      y_obj := 50 + sin(a_obj) * t_obj;
+      z_obj := 10 + t_obj;
+
+      MC[0,0] := x_obj;
+      MC[0,1] := y_obj;
+      MC[0,2] := z_obj;
+
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+      begin
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := clYellow;
+        end;
+      end;
+
+      a_obj := a_obj + 0.05;
+    end;
+    t_obj := t_obj + 1;
+  end;
+
+  // ***************************************************************
+  // * NOVOS OBJETOS ADICIONADOS AQUI
+  // ***************************************************************
+
+  // Objeto 4 (Verde): Paramétrico (Esfera)
+  a_obj := 0;
+  while a_obj <= 2 * Pi do
+  begin
+    b_obj := 0;
+    while b_obj <= 2 * Pi do
+    begin
+      x_obj := 100 + 30 * cos(a_obj) * cos(b_obj);
+      y_obj := 50 + 30 * cos(a_obj) * sin(b_obj);
+      z_obj := 20 + 30 * sin(a_obj);
+
+      MC[0,0] := x_obj;
+      MC[0,1] := y_obj;
+      MC[0,2] := z_obj;
+
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+      begin
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := clGreen;
+        end;
+      end;
+
+      b_obj := b_obj + 0.05; // Passo para b
+    end;
+    a_obj := a_obj + 0.05; // Passo para a
+  end;
+
+  // Objeto 5 (Branco): Cubo centrado na origem, lado 40
+
+  // Face 1 (Top, z = 20)
+  z_obj := 20;
+  for x_idx := -20 to 20 do
+  begin
+    for y_idx := -20 to 20 do
+    begin
+      MC[0,0] := x_idx; MC[0,1] := y_idx; MC[0,2] := z_obj;
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := clWhite;
+        end;
+    end;
+  end;
+
+  // Face 2 (Bottom, z = -20)
+  z_obj := -20;
+  for x_idx := -20 to 20 do
+  begin
+    for y_idx := -20 to 20 do
+    begin
+      MC[0,0] := x_idx; MC[0,1] := y_idx; MC[0,2] := z_obj;
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := clWhite;
+        end;
+    end;
+  end;
+
+  // Face 3 (Front, y = 20)
+  y_obj := 20;
+  for x_idx := -20 to 20 do
+  begin
+    for y_idx := -20 to 20 do // Este loop (y_idx) agora itera sobre Z
+    begin
+      z_obj := y_idx;
+      MC[0,0] := x_idx; MC[0,1] := y_obj; MC[0,2] := z_obj;
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := clWhite;
+        end;
+    end;
+  end;
+
+  // Face 4 (Back, y = -20)
+  y_obj := -20;
+  for x_idx := -20 to 20 do
+  begin
+    for y_idx := -20 to 20 do // Este loop (y_idx) agora itera sobre Z
+    begin
+      z_obj := y_idx;
+      MC[0,0] := x_idx; MC[0,1] := y_obj; MC[0,2] := z_obj;
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := clWhite;
+        end;
+    end;
+  end;
+
+  // Face 5 (Right, x = 20)
+  x_obj := 20;
+  for x_idx := -20 to 20 do // Este loop (x_idx) agora itera sobre Y
+  begin
+    for y_idx := -20 to 20 do // Este loop (y_idx) agora itera sobre Z
+    begin
+      y_obj := x_idx;
+      z_obj := y_idx;
+      MC[0,0] := x_obj; MC[0,1] := y_obj; MC[0,2] := z_obj;
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := clWhite;
+        end;
+    end;
+  end;
+
+  // Face 6 (Left, x = -20)
+  x_obj := -20;
+  for x_idx := -20 to 20 do // Este loop (x_idx) agora itera sobre Y
+  begin
+    for y_idx := -20 to 20 do // Este loop (y_idx) agora itera sobre Z
+    begin
+      y_obj := x_idx;
+      z_obj := y_idx;
+      MC[0,0] := x_obj; MC[0,1] := y_obj; MC[0,2] := z_obj;
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := clWhite;
+        end;
+    end;
+  end;
+
+  // Limpa matrizes (boa prática)
+  SetLength(MC, 0, 0);
+  SetLength(MResultado, 0, 0);
+  SetLength(MTransform, 0, 0);
+  SetLength(MH, 0, 0);
+  SetLength(MHO, 0, 0);
+  SetLength(MHTPos, 0, 0);
+  SetLength(MHTNeg, 0, 0);
+  SetLength(MTemp, 0, 0);
+
+end;
 procedure TForm1.MenuItem3Click(Sender: TObject);
 begin
   op := 1; //desenhar pixels na imagem

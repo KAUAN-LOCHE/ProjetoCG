@@ -379,6 +379,7 @@ object Form1: TForm1
       end
       object MenuItem11: TMenuItem
         Caption = 'Preenchimento de Polígonos'
+        OnClick = MenuItem11Click
         object MenuItem12: TMenuItem
           Caption = 'Inversão de Cores'
           OnClick = MenuItem12Click
@@ -395,6 +396,10 @@ object Form1: TForm1
       object MenuItem16: TMenuItem
         Caption = 'Reta função Paramétrica'
         OnClick = MenuItem16Click
+      end
+      object MenuItem17: TMenuItem
+        Caption = 'MenuItem17'
+        OnClick = MenuItem17Click
       end
     end
   end
