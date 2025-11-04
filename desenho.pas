@@ -11,10 +11,22 @@ uses
 type
   TMatriz = array of array of Double;
 
+  TVector3D = record
+    x, y, z: Double;
+  end;
+type
+
+
+
   { TForm1 }
 
   TForm1 = class(TForm)
+    Aula19Pratica2: TCheckBox;
     Button1: TButton;
+    Aula19Pratica1: TCheckBox;
+    Button2: TButton;
+    MenuItem18: TMenuItem;
+    MenuItem19: TMenuItem;
     RotacionarCasinha: TCheckBox;
     Edit1: TEdit;
     Edit10: TEdit;
@@ -70,7 +82,9 @@ type
     RadioButton4: TRadioButton;
     RadioButton5: TRadioButton;
     RadioButton6: TRadioButton;
+    procedure Aula19Pratica1Change(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure MenuItem18Click(Sender: TObject);
     procedure RotacionarCasinhaChange(Sender: TObject);
     procedure Edit5Change(Sender: TObject);
     procedure Edit6Change(Sender: TObject);
@@ -95,6 +109,8 @@ type
       var AWidth, AHeight: Integer);
     procedure MenuItem17Click(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
+    procedure DesenharSuperficieBilinear(P00, P01, P10, P11: TVector3D;
+      Cor: TColor; const MTransform: TMatriz);
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
@@ -115,11 +131,10 @@ type
     procedure desenhoAula16();
     procedure desenhoAula16B();
     function InverterCor(Cor: TColor): TColor;
- // Adicionar novas procedures
     procedure MultiplicarMatrizes4x4(const Matriz1, Matriz2: TMatriz; var MResultado: TMatriz);
+    procedure desenharZBufferObjetos(const MTransform: TMatriz);
+    procedure desenharPratica1(const MTransform: TMatriz);
 
-    // MODIFIQUE A LINHA ABAIXO:
-    procedure desenharZBufferObjetos(const MTransform: TMatriz); // <-- ADICIONAR PARÂMETRO
   private
     ZBuffer: TMatriz;
 
@@ -592,9 +607,12 @@ begin
 
     SetLength(MC_Casinha, 0, 0);
   end
+  else if Aula19Pratica1.Checked then // <--- Novo CheckBox
+  begin
+    desenharPratica1(MTransform);
+  end
   else
   begin
-    // DESENHA OS OBJETOS Z-BUFFER com a MTransform
     desenharZBufferObjetos(MTransform);
   end;
 
@@ -604,6 +622,141 @@ begin
   SetLength(MHTPos, 0, 0);
   SetLength(MHTNeg, 0, 0);
   SetLength(MTemp, 0, 0);
+end;
+
+procedure TForm1.Aula19Pratica1Change(Sender: TObject);
+begin
+
+end;
+
+procedure TForm1.MenuItem18Click(Sender: TObject);
+begin
+  op := 13;
+
+end;
+procedure TForm1.DesenharSuperficieBilinear(P00, P01, P10, P11: TVector3D;
+  Cor: TColor; const MTransform: TMatriz);
+var
+  u, v: Double;
+  P_uv: TVector3D;
+  MC, MResultado: TMatriz;
+  px, py: Integer;
+  z_prof: Double;
+  ImgWidth, ImgHeight, canvasCenterX, canvasCenterY: Integer;
+begin
+  // Configurações do Canvas (igual a desenharZBufferObjetos)
+  ImgWidth := Image1.Width;
+  ImgHeight := Image1.Height;
+  canvasCenterX := ImgWidth div 2;
+  canvasCenterY := ImgHeight div 2;
+
+  // Prepara matrizes de ponto
+  SetLength(MC, 1, 4);
+  SetLength(MResultado, 1, 4);
+  MC[0, 3] := 1.0;
+
+  // Itera sobre a superfície (u e v de 0 a 1)
+  u := 0;
+  while u <= 1.0 do
+  begin
+    v := 0;
+    while v <= 1.0 do
+    begin
+      // 1. Calcula o ponto P(u,v) usando a fórmula
+      P_uv.x := P00.x * (1 - u) * (1 - v) +
+                P01.x * (1 - u) * v +
+                P10.x * u * (1 - v) +
+                P11.x * u * v;
+
+      P_uv.y := P00.y * (1 - u) * (1 - v) +
+                P01.y * (1 - u) * v +
+                P10.y * u * (1 - v) +
+                P11.y * u * v;
+
+      P_uv.z := P00.z * (1 - u) * (1 - v) +
+                P01.z * (1 - u) * v +
+                P10.z * u * (1 - v) +
+                P11.z * u * v;
+
+      // 2. Coloca o ponto na matriz MC para transformar
+      MC[0, 0] := P_uv.x;
+      MC[0, 1] := P_uv.y;
+      MC[0, 2] := P_uv.z;
+
+      // 3. Aplica a Transformação Global (rotação, etc.)
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+
+      // 4. Projeta na tela e obtém profundidade
+      px := canvasCenterX + Round(MResultado[0, 0]);
+      py := canvasCenterY - Round(MResultado[0, 1]);
+      z_prof := MResultado[0, 2];
+
+      // 5. Faz o Teste do Z-Buffer
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+      begin
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := Cor;
+        end;
+      end;
+
+      v := v + 0.05; // Ajuste o passo para mais qualidade/velocidade
+    end;
+    u := u + 0.05; // Ajuste o passo para mais qualidade/velocidade
+  end;
+
+  SetLength(MC, 0, 0);
+  SetLength(MResultado, 0, 0);
+end;
+procedure TForm1.desenharPratica1(const MTransform: TMatriz);
+var
+  // Os 10 vértices do objeto
+  V: array[1..10] of TVector3D;
+  // Variáveis para limpar o Z-Buffer
+  x_idx, y_idx: Integer;
+begin
+  // 1. Define os 10 Vértices (SINTAXE CORRIGIDA)
+  with V[1]  do begin x := 0;   y := 0;   z := 0;   end; // (0,0,0)
+  with V[2]  do begin x := 0;   y := 0;   z := 80;  end; // (0,0,80)
+  with V[3]  do begin x := 0;   y := 40;  z := 80;  end; // (0,40,80)
+  with V[4]  do begin x := 20;  y := 0;   z := 0;   end; // (20,0,0)
+  with V[5]  do begin x := 20;  y := 0;   z := 80;  end; // (20,0,80)
+  with V[6]  do begin x := 20;  y := 40;  z := 80;  end; // (20,40,80)
+  with V[7]  do begin x := 100; y := 0;   z := 0;   end; // (100,0,0)
+  with V[8]  do begin x := 100; y := 40;  z := 0;   end; // (100,40,0)
+  with V[9]  do begin x := 120; y := 0;   z := 0;   end; // (120,0,0)
+  with V[10] do begin x := 120; y := 40;  z := 0;   end; // (120,40,0)
+
+  // 2. Limpa o Canvas e o Z-Buffer (CORRIGIDO)
+  Image1.Canvas.Brush.Color := clBlack;
+  Image1.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
+
+  SetLength(ZBuffer, Image1.Height, Image1.Width);
+  for y_idx := 0 to Image1.Height - 1 do
+    for x_idx := 0 to Image1.Width - 1 do
+      ZBuffer[y_idx, x_idx] := Math.Infinity;
+
+  // 3. Desenha as 7 faces (3 quads, 4 triângulos)
+  // (Esta parte estava correta e permanece a mesma)
+
+  // Quadriláteros (4 vértices)
+  // Face 1 (Verde Lateral)
+  DesenharSuperficieBilinear(V[1], V[2], V[4], V[5], clGreen, MTransform);
+  // Face 2 (Verde Traseira)
+  DesenharSuperficieBilinear(V[2], V[3], V[5], V[6], clGreen, MTransform);
+  // Face 7 (Marrom Chão)
+  DesenharSuperficieBilinear(V[7], V[8], V[9], V[10], clMaroon, MTransform);
+
+  // Triângulos (4 vértices, onde P10=P11)
+  // Face 3 (Verde Rampa Inf.) -> Vértices: V4, V5, V7
+  DesenharSuperficieBilinear(V[4], V[5], V[7], V[7], clGreen, MTransform);
+  // Face 4 (Amarelo Rampa) -> Vértices: V5, V6, V8
+  DesenharSuperficieBilinear(V[5], V[6], V[8], V[8], clYellow, MTransform);
+  // Face 5 (Azul Rampa) -> Vértices: V3, V6, V8
+  DesenharSuperficieBilinear(V[3], V[6], V[8], V[8], clBlue, MTransform);
+  // Face 6 (Vermelho Chão) -> Vértices: V4, V8, V7
+  DesenharSuperficieBilinear(V[4], V[8], V[7], V[7], clRed, MTransform);
 end;
 
 procedure TForm1.RotacionarCasinhaChange(Sender: TObject);
@@ -1578,93 +1731,79 @@ begin
 end;
 procedure TForm1.desenharZBufferObjetos(const MTransform: TMatriz);
 var
-
-  // Variáveis do Z-Buffer
-  // ESTAS VARIÁVEIS PERMANECEM:
-  MC, MResultado: TMatriz; // <-- MResultado PERMANECE
+  // ... (variáveis existentes, nenhuma mudança aqui) ...
+  MC, MResultado: TMatriz;
   ImgWidth, ImgHeight, canvasCenterX, canvasCenterY, px, py : Integer;
   x_idx, y_idx: Integer;
   x_obj, y_obj, z_obj, t_obj, a_obj, b_obj, z_prof: Double;
 
 begin
-  // 1. Inicializar Canvas e Z-Buffer
+  // 1. Inicializar Canvas e Z-Buffer (Sem mudanças)
   ImgWidth := Image1.Width;
   ImgHeight := Image1.Height;
   canvasCenterX := ImgWidth div 2;
   canvasCenterY := ImgHeight div 2;
 
-  // Limpa a tela para preto (Fundo = preto)
   Image1.Canvas.Brush.Color := clBlack;
   Image1.Canvas.FillRect(0, 0, ImgWidth, ImgHeight);
 
-  // Inicializa o Z-Buffer com 'Infinito' (o maior valor possível)
   SetLength(ZBuffer, ImgHeight, ImgWidth);
   for y_idx := 0 to ImgHeight - 1 do
     for x_idx := 0 to ImgWidth - 1 do
       ZBuffer[y_idx, x_idx] := Math.Infinity;
 
+  // 2. Preparar Matrizes (Sem mudanças)
   SetLength(MC, 1, 4);
   SetLength(MResultado, 1, 4);
 
+  // 3. (Bloco de construção da matriz foi removido, está correto)
 
   // 4. Desenhar Objetos com Z-Buffer
   MC[0, 3] := 1.0;
 
-  // Objeto 1 (Azul): z = x^2 + y
+  // ... (Objetos 1, 2, 3, 4 permanecem exatamente iguais) ...
+
+  // Objeto 1 (Azul)
   for x_idx := 10 to 30 do
   begin
     for y_idx := 20 to 40 do
     begin
       z_obj := (x_idx * x_idx) + y_idx;
-      MC[0,0] := x_idx;
-      MC[0,1] := y_idx;
-      MC[0,2] := z_obj;
-
+      MC[0,0] := x_idx; MC[0,1] := y_idx; MC[0,2] := z_obj;
       MultiplicarMatrizes(MC, MTransform, MResultado);
-
       px := canvasCenterX + Round(MResultado[0, 0]);
       py := canvasCenterY - Round(MResultado[0, 1]);
       z_prof := MResultado[0, 2];
-
       if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
-      begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
           Image1.Canvas.Pixels[px, py] := clBlue;
         end;
-      end;
     end;
   end;
 
-  // Objeto 2 (Vermelho): z = 3x - 2y + 5
+  // Objeto 2 (Vermelho)
   for x_idx := 50 to 100 do
   begin
     for y_idx := 30 to 80 do
     begin
       z_obj := (3 * x_idx) - (2 * y_idx) + 5;
-      MC[0,0] := x_idx;
-      MC[0,1] := y_idx;
-      MC[0,2] := z_obj;
-
+      MC[0,0] := x_idx; MC[0,1] := y_idx; MC[0,2] := z_obj;
       MultiplicarMatrizes(MC, MTransform, MResultado);
-
       px := canvasCenterX + Round(MResultado[0, 0]);
       py := canvasCenterY - Round(MResultado[0, 1]);
       z_prof := MResultado[0, 2];
-
       if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
-      begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
           Image1.Canvas.Pixels[px, py] := clRed;
         end;
-      end;
     end;
   end;
 
-  // Objeto 3 (Amarelo): Paramétrico (Cone)
+  // Objeto 3 (Amarelo)
   t_obj := 0;
   while t_obj <= 50 do
   begin
@@ -1674,36 +1813,23 @@ begin
       x_obj := 30 + cos(a_obj) * t_obj;
       y_obj := 50 + sin(a_obj) * t_obj;
       z_obj := 10 + t_obj;
-
-      MC[0,0] := x_obj;
-      MC[0,1] := y_obj;
-      MC[0,2] := z_obj;
-
+      MC[0,0] := x_obj; MC[0,1] := y_obj; MC[0,2] := z_obj;
       MultiplicarMatrizes(MC, MTransform, MResultado);
-
       px := canvasCenterX + Round(MResultado[0, 0]);
       py := canvasCenterY - Round(MResultado[0, 1]);
       z_prof := MResultado[0, 2];
-
       if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
-      begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
           Image1.Canvas.Pixels[px, py] := clYellow;
         end;
-      end;
-
       a_obj := a_obj + 0.05;
     end;
     t_obj := t_obj + 1;
   end;
 
-  // ***************************************************************
-  // * NOVOS OBJETOS ADICIONADOS AQUI
-  // ***************************************************************
-
-  // Objeto 4 (Verde): Paramétrico (Esfera)
+  // Objeto 4 (Verde)
   a_obj := 0;
   while a_obj <= 2 * Pi do
   begin
@@ -1713,34 +1839,29 @@ begin
       x_obj := 100 + 30 * cos(a_obj) * cos(b_obj);
       y_obj := 50 + 30 * cos(a_obj) * sin(b_obj);
       z_obj := 20 + 30 * sin(a_obj);
-
-      MC[0,0] := x_obj;
-      MC[0,1] := y_obj;
-      MC[0,2] := z_obj;
-
+      MC[0,0] := x_obj; MC[0,1] := y_obj; MC[0,2] := z_obj;
       MultiplicarMatrizes(MC, MTransform, MResultado);
-
       px := canvasCenterX + Round(MResultado[0, 0]);
       py := canvasCenterY - Round(MResultado[0, 1]);
       z_prof := MResultado[0, 2];
-
       if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
-      begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
           Image1.Canvas.Pixels[px, py] := clGreen;
         end;
-      end;
-
-      b_obj := b_obj + 0.05; // Passo para b
+      b_obj := b_obj + 0.05;
     end;
-    a_obj := a_obj + 0.05; // Passo para a
+    a_obj := a_obj + 0.05;
   end;
 
-  // Objeto 5 (Branco): Cubo centrado na origem, lado 40
+  // ***************************************************************
+  // * MODIFICAÇÃO NO CUBO (OBJETO 5)
+  // ***************************************************************
 
-  // Face 1 (Top, z = 20)
+  // Objeto 5 (Cubo Multi-colorido)
+
+  // Face 1 (Top, z = 20) -> VERMELHO
   z_obj := 20;
   for x_idx := -20 to 20 do
   begin
@@ -1755,12 +1876,12 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clWhite;
+          Image1.Canvas.Pixels[px, py] := clRed; // <-- MUDADO
         end;
     end;
   end;
 
-  // Face 2 (Bottom, z = -20)
+  // Face 2 (Bottom, z = -20) -> VERMELHO
   z_obj := -20;
   for x_idx := -20 to 20 do
   begin
@@ -1775,16 +1896,16 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clWhite;
+          Image1.Canvas.Pixels[px, py] := clRed; // <-- MUDADO
         end;
     end;
   end;
 
-  // Face 3 (Front, y = 20)
+  // Face 3 (Front, y = 20) -> AZUL
   y_obj := 20;
   for x_idx := -20 to 20 do
   begin
-    for y_idx := -20 to 20 do // Este loop (y_idx) agora itera sobre Z
+    for y_idx := -20 to 20 do // iterando em Z
     begin
       z_obj := y_idx;
       MC[0,0] := x_idx; MC[0,1] := y_obj; MC[0,2] := z_obj;
@@ -1796,16 +1917,16 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clWhite;
+          Image1.Canvas.Pixels[px, py] := clBlue; // <-- MUDADO
         end;
     end;
   end;
 
-  // Face 4 (Back, y = -20)
+  // Face 4 (Back, y = -20) -> AZUL
   y_obj := -20;
   for x_idx := -20 to 20 do
   begin
-    for y_idx := -20 to 20 do // Este loop (y_idx) agora itera sobre Z
+    for y_idx := -20 to 20 do // iterando em Z
     begin
       z_obj := y_idx;
       MC[0,0] := x_idx; MC[0,1] := y_obj; MC[0,2] := z_obj;
@@ -1817,16 +1938,16 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clWhite;
+          Image1.Canvas.Pixels[px, py] := clBlue; // <-- MUDADO
         end;
     end;
   end;
 
-  // Face 5 (Right, x = 20)
+  // Face 5 (Right, x = 20) -> VERDE
   x_obj := 20;
-  for x_idx := -20 to 20 do // Este loop (x_idx) agora itera sobre Y
+  for x_idx := -20 to 20 do // iterando em Y
   begin
-    for y_idx := -20 to 20 do // Este loop (y_idx) agora itera sobre Z
+    for y_idx := -20 to 20 do // iterando em Z
     begin
       y_obj := x_idx;
       z_obj := y_idx;
@@ -1839,16 +1960,16 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clWhite;
+          Image1.Canvas.Pixels[px, py] := clGreen; // <-- MUDADO
         end;
     end;
   end;
 
-  // Face 6 (Left, x = -20)
+  // Face 6 (Left, x = -20) -> VERDE
   x_obj := -20;
-  for x_idx := -20 to 20 do // Este loop (x_idx) agora itera sobre Y
+  for x_idx := -20 to 20 do // iterando em Y
   begin
-    for y_idx := -20 to 20 do // Este loop (y_idx) agora itera sobre Z
+    for y_idx := -20 to 20 do // iterando em Z
     begin
       y_obj := x_idx;
       z_obj := y_idx;
@@ -1861,15 +1982,14 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clWhite;
+          Image1.Canvas.Pixels[px, py] := clGreen; // <-- MUDADO
         end;
     end;
   end;
 
-  // Limpa matrizes (boa prática)
+  // Limpa matrizes
   SetLength(MC, 0, 0);
   SetLength(MResultado, 0, 0);
-
 end;
 procedure TForm1.MenuItem3Click(Sender: TObject);
 begin
