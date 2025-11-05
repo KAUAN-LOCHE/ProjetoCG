@@ -1,11 +1,11 @@
 object Form1: TForm1
-  Left = -69
+  Left = -1889
   Height = 1026
-  Top = 142
-  Width = 1920
+  Top = 83
+  Width = 1832
   Caption = 'Form1'
-  ClientHeight = 0
-  ClientWidth = 0
+  ClientHeight = 1026
+  ClientWidth = 1832
   DesignTimePPI = 120
   Menu = MainMenu1
   LCLVersion = '4.2.0.0'
@@ -31,7 +31,7 @@ object Form1: TForm1
   object Edit2: TEdit
     Left = 65
     Height = 28
-    Top = 232
+    Top = 240
     Width = 100
     TabOrder = 1
   end
@@ -344,14 +344,14 @@ object Form1: TForm1
     TabOrder = 34
     OnChange = RotacionarCasinhaChange
   end
-  object Aula19Pratica1: TCheckBox
+  object objetos: TCheckBox
     Left = 1664
     Height = 24
     Top = 248
     Width = 73
     Caption = 'Objetos'
     TabOrder = 35
-    OnChange = Aula19Pratica1Change
+    OnChange = objetosChange
   end
   object Button2: TButton
     Left = 1368
@@ -360,18 +360,11 @@ object Form1: TForm1
     Width = 200
     Caption = 'Gerar Desenho Varredura'
     TabOrder = 36
-  end
-  object Aula19Pratica2: TCheckBox
-    Left = 1664
-    Height = 24
-    Top = 280
-    Width = 159
-    Caption = 'Objetos Aula 18 e 19'
-    TabOrder = 37
+    OnClick = Button2Click
   end
   object MainMenu1: TMainMenu
     Left = 240
-    Top = 50
+    Top = 48
     object MenuItem1: TMenuItem
       Caption = 'Arquivo'
       OnClick = MenuItem1Click
@@ -436,11 +429,12 @@ object Form1: TForm1
         OnClick = MenuItem17Click
       end
       object MenuItem18: TMenuItem
-        Caption = 'Superfície Bilinear'
+        Caption = 'Varredura'
         OnClick = MenuItem18Click
       end
       object MenuItem19: TMenuItem
-        Caption = 'Iniciar Desenho Varredura'
+        Caption = 'Superfície Bilinear'
+        OnClick = MenuItem19Click
       end
     end
   end

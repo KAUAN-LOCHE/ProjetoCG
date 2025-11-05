@@ -21,9 +21,8 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
-    Aula19Pratica2: TCheckBox;
     Button1: TButton;
-    Aula19Pratica1: TCheckBox;
+    objetos: TCheckBox;
     Button2: TButton;
     MenuItem18: TMenuItem;
     MenuItem19: TMenuItem;
@@ -84,7 +83,10 @@ type
     RadioButton6: TRadioButton;
     procedure Aula19Pratica1Change(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
     procedure MenuItem18Click(Sender: TObject);
+    procedure MenuItem19Click(Sender: TObject);
+    procedure objetosChange(Sender: TObject);
     procedure RotacionarCasinhaChange(Sender: TObject);
     procedure Edit5Change(Sender: TObject);
     procedure Edit6Change(Sender: TObject);
@@ -134,9 +136,11 @@ type
     procedure MultiplicarMatrizes4x4(const Matriz1, Matriz2: TMatriz; var MResultado: TMatriz);
     procedure desenharZBufferObjetos(const MTransform: TMatriz);
     procedure desenharPratica1(const MTransform: TMatriz);
+    function RotacionarPonto(P: TPoint; EixoX, CanvasCenterY: Integer; Angulo: Double): TVector3D;
 
   private
     ZBuffer: TMatriz;
+    EixoVarreduraX: Integer;
 
   public
 
@@ -154,6 +158,8 @@ var
   contador, contador2:integer;
   flagOpcao8 : boolean;
   xSeed, ySeed: integer;
+  PerfilUsuario: array of TPoint;
+  ContadorPerfil: Integer;
 
 implementation
 
@@ -166,6 +172,8 @@ begin
   op := 0;
   x1 := -1;
   y1 := -1;
+  ContadorPerfil := 0;
+  SetLength(PerfilUsuario,0);
 end;
 
 
@@ -201,6 +209,28 @@ begin
      xSeed := X;
      ySeed := Y;
   end;
+
+   if (op = 13) then
+  begin
+    // Adiciona o novo ponto ao perfil
+    SetLength(PerfilUsuario, ContadorPerfil + 1);
+    PerfilUsuario[ContadorPerfil] := Point(X, Y);
+    Inc(ContadorPerfil);
+
+    // Desenha o segmento de linha do perfil se houver mais de um ponto
+    if ContadorPerfil > 1 then
+    begin
+      Image1.Canvas.Pen.Color := clRed; // Cor do perfil
+      Image1.Canvas.MoveTo(PerfilUsuario[ContadorPerfil - 2].X, PerfilUsuario[ContadorPerfil - 2].Y);
+      Image1.Canvas.LineTo(PerfilUsuario[ContadorPerfil - 1].X, PerfilUsuario[ContadorPerfil - 1].Y);
+    end
+    else
+    begin
+      // Desenha o primeiro ponto
+      Image1.Canvas.Pixels[X, Y] := clRed;
+    end;
+end;
+
 end;
 
 procedure TForm1.Image1Click(Sender: TObject);
@@ -454,32 +484,26 @@ end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 var
-  // Variáveis para CONSTRUIR a matriz
   a, b, cx, cy, cz : Integer;
   MTransform, MHO, MHTPos, MHTNeg, MTemp : TMatriz;
   aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp : Double;
-
-  // Variáveis para DESENHAR a casinha
   MC_Casinha : TMatriz;
   canvasCenterX, canvasCenterY : Integer;
 begin
-  // 1. INICIALIZAR MATRIZ DE TRANSFORMAÇÃO (MTransform)
+  // 1. INICIALIZAR MATRIZ DE TRANSFORMAÇÃO
   SetLength(MTransform, 4, 4);
   SetLength(MHO, 4, 4);
   SetLength(MHTPos, 4, 4);
   SetLength(MHTNeg, 4, 4);
   SetLength(MTemp, 4, 4);
 
-  // Define MTransform como Matriz Identidade por padrão
   for a := 0 to 3 do for b := 0 to 3 do MTransform[a,b] := 0.0;
   MTransform[0,0] := 1.0;
   MTransform[1,1] := 1.0;
   MTransform[2,2] := 1.0;
   MTransform[3,3] := 1.0;
 
-  // 2. CONSTRUIR MATRIZ DE TRANSFORMAÇÃO (Lógica movida para cá)
-
-  // Escala Local
+  // 2. CONSTRUIR MATRIZ DE TRANSFORMAÇÃO
   if RadioButton1.Checked then
   begin
     aa := StrToFloat(Edit5.Text);
@@ -489,8 +513,6 @@ begin
     MTransform[1,1] := 1 * bb;
     MTransform[2,2] := 1 * cc;
   end
-
-  // Escala Global
   else if RadioButton2.Checked then
   begin
     aa := StrToFloat(Edit8.Text);
@@ -498,8 +520,6 @@ begin
     MTransform[1,1] := 1 / aa;
     MTransform[2,2] := 1 / aa;
   end
-
-  // Translação
   else if RadioButton3.Checked then
   begin
     aa := StrToFloat(Edit9.Text);
@@ -509,8 +529,6 @@ begin
     MTransform[3,1] := bb;
     MTransform[3,2] := cc;
   end
-
-  // Rotação em torno eixos na origem
   else if RadioButton4.Checked then
   begin
     aa := StrToFloat(Edit13.Text) * Pi / 180;
@@ -530,11 +548,22 @@ begin
       MTransform[1,0] := -sin(aa); MTransform[1,1] := cos(aa);
     end;
   end
-
-  // Rotação em torno eixos no centro objeto
   else if RadioButton5.Checked then
   begin
-    cx := 50; cy := 70; cz := 50;
+    // Determina o centro baseado no que está sendo rotacionado
+    if RotacionarCasinha.Checked then
+    begin
+      cx := 50; cy := 70; cz := 50;
+    end
+    else if objetos.Checked then
+    begin
+      cx := 60; cy := 20; cz := 40; // Centro aproximado dos objetos da prática 1
+    end
+    else
+    begin
+      cx := 0; cy := 0; cz := 0; // Centro na origem para objetos Z-Buffer
+    end;
+
     aa := StrToFloat(Edit13.Text) * Pi / 180;
 
     for a := 0 to 3 do for b := 0 to 3 do MHO[a,b] := 0.0;
@@ -566,8 +595,6 @@ begin
     MultiplicarMatrizes4x4(MHTNeg, MHO, MTemp);
     MultiplicarMatrizes4x4(MTemp, MHTPos, MTransform);
   end
-
-  // Shearing
   else if RadioButton6.Checked then
   begin
     aa := StrToFloat(Edit14.Text); bb := StrToFloat(Edit15.Text);
@@ -585,35 +612,196 @@ begin
     MTransform[3,0] := 1 * mm; MTransform[3,1] := 1 * nn; MTransform[3,2] := 1 * oo; MTransform[3,3] := 1 / pp;
   end;
 
-  // 3. DECIDIR O QUE DESENHAR COM BASE NO CHECKBOX
-
-  // Limpa a tela antes de desenhar
+  // 3. LIMPAR TELA
   Image1.Canvas.Brush.Color := clBlack;
   Image1.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
 
-  if RotacionarCasinha.Checked then
+  // 4. DECIDIR O QUE DESENHAR
+if RotacionarCasinha.Checked then
+begin
+  canvasCenterX := Image1.Width div 2;
+  canvasCenterY := Image1.Height div 2;
+  SetLength(MC_Casinha, 1, 4);
+  MTransform[0,2] := 0;
+  MTransform[1,2] := 0;
+  MTransform[2,2] := 0;
+  ProjecaoOrtografica(MC_Casinha, MTransform, canvasCenterX, canvasCenterY);
+  SetLength(MC_Casinha, 0, 0);
+end
+else if (RotacionarCasinha.Checked = false) and (op <> 13) then// Desenha todos os objetos (Aula 17, 18 e 19) com Z-Buffer
+begin
+  desenharZBufferObjetos(MTransform);
+end;
+
+  // 5. LIMPAR MATRIZES
+  SetLength(MTransform, 0, 0);
+  SetLength(MHO, 0, 0);
+  SetLength(MHTPos, 0, 0);
+  SetLength(MHTNeg, 0, 0);
+  SetLength(MTemp, 0, 0);
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+var
+  i: Integer;
+  Angulo, AnguloStep: Double;
+  P00, P01, P10, P11: TVector3D;
+  P1, P2: TPoint;
+  MTransform: TMatriz;
+  a, b, x_idx, y_idx, ImgWidth, ImgHeight, canvasCenterY: Integer;
+  // Variáveis para copiar a lógica de transformação do Button1
+  cx, cy, cz : Integer;
+  MHO, MHTPos, MHTNeg, MTemp : TMatriz;
+  aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp : Double;
+begin
+  // Só executa se estivermos no modo Varredura (op=13) e tivermos um perfil válido
+  if (op <> 13) or (ContadorPerfil < 2) then Exit;
+
+  // 1. INICIALIZAR TELA E Z-BUFFER
+  ImgWidth := Image1.Width;
+  ImgHeight := Image1.Height;
+  canvasCenterY := ImgHeight div 2;
+
+  Image1.Canvas.Brush.Color := clBlack;
+  Image1.Canvas.FillRect(0, 0, ImgWidth, ImgHeight);
+
+  SetLength(ZBuffer, ImgHeight, ImgWidth);
+  for y_idx := 0 to ImgHeight - 1 do
+    for x_idx := 0 to ImgWidth - 1 do
+      ZBuffer[y_idx, x_idx] := Math.Infinity;
+
+  // 2. CONSTRUIR MATRIZ DE TRANSFORMAÇÃO (Copiado do Button1Click)
+  SetLength(MTransform, 4, 4);
+  SetLength(MHO, 4, 4);
+  SetLength(MHTPos, 4, 4);
+  SetLength(MHTNeg, 4, 4);
+  SetLength(MTemp, 4, 4);
+
+  for a := 0 to 3 do for b := 0 to 3 do MTransform[a,b] := 0.0;
+  MTransform[0,0] := 1.0;
+  MTransform[1,1] := 1.0;
+  MTransform[2,2] := 1.0;
+  MTransform[3,3] := 1.0;
+
+  if RadioButton1.Checked then
   begin
-    // DESENHA A CASINHA com a MTransform
-    canvasCenterX := Image1.Width div 2;
-    canvasCenterY := Image1.Height div 2;
-    SetLength(MC_Casinha, 1, 4);
-
-    // Na projeção ortográfica da casinha, zeramos o Z
-    MTransform[0,2] := 0;
-    MTransform[1,2] := 0;
-    MTransform[2,2] := 0; // Z não é usado
-
-    ProjecaoOrtografica(MC_Casinha, MTransform, canvasCenterX, canvasCenterY);
-
-    SetLength(MC_Casinha, 0, 0);
+    aa := StrToFloat(Edit5.Text);
+    bb := StrToFloat(Edit6.Text);
+    cc := StrToFloat(Edit7.Text);
+    MTransform[0,0] := 1 * aa;
+    MTransform[1,1] := 1 * bb;
+    MTransform[2,2] := 1 * cc;
   end
-  else if Aula19Pratica1.Checked then // <--- Novo CheckBox
+  else if RadioButton2.Checked then
   begin
-    desenharPratica1(MTransform);
+    aa := StrToFloat(Edit8.Text);
+    MTransform[0,0] := 1 / aa;
+    MTransform[1,1] := 1 / aa;
+    MTransform[2,2] := 1 / aa;
   end
-  else
+  else if RadioButton3.Checked then
   begin
-    desenharZBufferObjetos(MTransform);
+    aa := StrToFloat(Edit9.Text);
+    bb := StrToFloat(Edit10.Text);
+    cc := StrToFloat(Edit11.Text);
+    MTransform[3,0] := aa;
+    MTransform[3,1] := bb;
+    MTransform[3,2] := cc;
+  end
+  else if RadioButton4.Checked then
+  begin
+    aa := StrToFloat(Edit13.Text) * Pi / 180;
+    if (Edit12.Text = 'X') or (Edit12.Text = 'x') then
+    begin
+      MTransform[1,1] := cos(aa); MTransform[1,2] := sin(aa);
+      MTransform[2,1] := -sin(aa); MTransform[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Y') or (Edit12.Text = 'y') then
+    begin
+      MTransform[0,0] := cos(aa); MTransform[0,2] := -sin(aa);
+      MTransform[2,0] := sin(aa); MTransform[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Z') or (Edit12.Text = 'z') then
+    begin
+      MTransform[0,0] := cos(aa); MTransform[0,1] := sin(aa);
+      MTransform[1,0] := -sin(aa); MTransform[1,1] := cos(aa);
+    end;
+  end
+  else if RadioButton5.Checked then
+  begin
+    // Para Varredura, o centro de rotação local é sempre 0,0,0 (mundo)
+    cx := 0; cy := 0; cz := 0;
+
+    aa := StrToFloat(Edit13.Text) * Pi / 180;
+
+    for a := 0 to 3 do for b := 0 to 3 do MHO[a,b] := 0.0;
+    MHO[0,0] := 1.0; MHO[1,1] := 1.0; MHO[2,2] := 1.0; MHO[3,3] := 1.0;
+    for a := 0 to 3 do for b := 0 to 3 do MHTPos[a,b] := 0.0;
+    MHTPos[0,0] := 1.0; MHTPos[1,1] := 1.0; MHTPos[2,2] := 1.0; MHTPos[3,3] := 1.0;
+    for a := 0 to 3 do for b := 0 to 3 do MHTNeg[a,b] := 0.0;
+    MHTNeg[0,0] := 1.0; MHTNeg[1,1] := 1.0; MHTNeg[2,2] := 1.0; MHTNeg[3,3] := 1.0;
+
+    if (Edit12.Text = 'X') or (Edit12.Text = 'x') then
+    begin
+      MHO[1,1] := cos(aa); MHO[1,2] := sin(aa);
+      MHO[2,1] := -sin(aa); MHO[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Y') or (Edit12.Text = 'y') then
+    begin
+      MHO[0,0] := cos(aa); MHO[0,2] := -sin(aa);
+      MHO[2,0] := sin(aa); MHO[2,2] := cos(aa);
+    end
+    else if (Edit12.Text = 'Z') or (Edit12.Text = 'z') then
+    begin
+      MHO[0,0] := cos(aa); MHO[0,1] := sin(aa);
+      MHO[1,0] := -sin(aa); MHO[1,1] := cos(aa);
+    end;
+
+    MHTPos[3,0] := cx; MHTPos[3,1] := cy; MHTPos[3,2] := cz;
+    MHTNeg[3,0] := -cx; MHTNeg[3,1] := -cy; MHTNeg[3,2] := -cz;
+
+    MultiplicarMatrizes4x4(MHTNeg, MHO, MTemp);
+    MultiplicarMatrizes4x4(MTemp, MHTPos, MTransform);
+  end
+  else if RadioButton6.Checked then
+  begin
+    aa := StrToFloat(Edit14.Text); bb := StrToFloat(Edit15.Text);
+    cc := StrToFloat(Edit16.Text); dd := StrToFloat(Edit17.Text);
+    ee := StrToFloat(Edit18.Text); ff := StrToFloat(Edit19.Text);
+    gg := StrToFloat(Edit20.Text); hh := StrToFloat(Edit21.Text);
+    ii := StrToFloat(Edit22.Text); jj := StrToFloat(Edit23.Text);
+    kk := StrToFloat(Edit24.Text); ll := StrToFloat(Edit25.Text);
+    mm := StrToFloat(Edit26.Text); nn := StrToFloat(Edit27.Text);
+    oo := StrToFloat(Edit28.Text); pp := StrToFloat(Edit29.Text);
+
+    MTransform[0,0] := 1 * aa; MTransform[0,1] := 1 * bb; MTransform[0,2] := 1 * cc; MTransform[0,3] := 1 * dd;
+    MTransform[1,0] := 1 * ee; MTransform[1,1] := 1 * ff; MTransform[1,2] := 1 * gg; MTransform[1,3] := 1 * hh;
+    MTransform[2,0] := 1 * ii; MTransform[2,1] := 1 * jj; MTransform[2,2] := 1 * kk; MTransform[2,3] := 1 * ll;
+    MTransform[3,0] := 1 * mm; MTransform[3,1] := 1 * nn; MTransform[3,2] := 1 * oo; MTransform[3,3] := 1 / pp;
+  end;
+  // FIM DA CÓPIA DO Button1Click
+
+  // 3. GERAR SUPERFÍCIES DE VARREDURA
+  AnguloStep := 15 * Pi / 180; // Gira 15 graus por passo
+  Angulo := 0;
+
+  while Angulo < (2 * Pi) do
+  begin
+    for i := 0 to ContadorPerfil - 2 do
+    begin
+      P1 := PerfilUsuario[i];
+      P2 := PerfilUsuario[i+1];
+
+      // Calcula os 4 pontos da superfície bilinear
+      P00 := RotacionarPonto(P1, EixoVarreduraX, canvasCenterY, Angulo);
+      P01 := RotacionarPonto(P1, EixoVarreduraX, canvasCenterY, Angulo + AnguloStep);
+      P10 := RotacionarPonto(P2, EixoVarreduraX, canvasCenterY, Angulo);
+      P11 := RotacionarPonto(P2, EixoVarreduraX, canvasCenterY, Angulo + AnguloStep);
+
+      // Desenha a superfície, aplicando a MTransform calculada
+      DesenharSuperficieBilinear(P00, P01, P10, P11, clYellow, MTransform);
+    end;
+    Angulo := Angulo + AnguloStep;
   end;
 
   // 4. LIMPAR MATRIZES
@@ -622,6 +810,44 @@ begin
   SetLength(MHTPos, 0, 0);
   SetLength(MHTNeg, 0, 0);
   SetLength(MTemp, 0, 0);
+
+  // 5. REDESENHAR O EIXO E O PERFIL (para referência)
+  Image1.Canvas.Pen.Color := clGray;
+  Image1.Canvas.Pen.Style := psDot;
+  Image1.Canvas.MoveTo(EixoVarreduraX, 0);
+  Image1.Canvas.LineTo(EixoVarreduraX, Image1.Height);
+  Image1.Canvas.Pen.Style := psSolid;
+
+  Image1.Canvas.Pen.Color := clRed;
+  if ContadorPerfil > 1 then
+  begin
+    for i := 0 to ContadorPerfil - 2 do
+    begin
+      Image1.Canvas.MoveTo(PerfilUsuario[i].X, PerfilUsuario[i].Y);
+      Image1.Canvas.LineTo(PerfilUsuario[i+1].X, PerfilUsuario[i+1].Y);
+    end;
+  end;
+
+  // Habilita os botões de transformação para o objeto gerado
+  flagOpcao8 := True;
+end;
+function TForm1.RotacionarPonto(P: TPoint; EixoX, CanvasCenterY: Integer; Angulo: Double): TVector3D;
+var
+  Raio: Double;
+begin
+  // Raio é a distância do ponto (P.X) ao eixo de rotação (EixoX)
+  // Assume que o perfil está no plano XY do mundo (X = Raio, Y = altura, Z = 0)
+  Raio := P.X - EixoX;
+
+  // Coordenada Y do mundo 3D é baseada no Y da tela (invertido e "centrado" em Y=0 do mundo)
+  // Ajuste para que o Y do canvas seja o Y do mundo (altura)
+  Result.y := CanvasCenterY - P.Y; // Y do mundo = Altura no canvas
+
+  // Rotaciona o Raio (que é o X do mundo) ao redor do eixo Y (altura)
+  // O ponto original está em (Raio, Result.y, 0)
+  // Rotacionando ao redor do eixo Y:
+  Result.x := Raio * cos(Angulo);
+  Result.z := Raio * sin(Angulo); // Z negativo para "dentro" da tela
 end;
 
 procedure TForm1.Aula19Pratica1Change(Sender: TObject);
@@ -631,38 +857,92 @@ end;
 
 procedure TForm1.MenuItem18Click(Sender: TObject);
 begin
-  op := 13;
+  // MODIFICADO: Configura para desenhar perfil de varredura
+  op := 13; // Modo de desenho de Varredura
+  flagOpcao8 := False; // Desativa transformações (Button1)
+  RotacionarCasinha.Checked := False;
+  objetos.Checked := False;
 
+  // Limpa a tela
+  Image1.Canvas.Brush.Color := clBlack;
+  Image1.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
+
+  // Define e desenha o eixo de rotação (Y-axis no mundo 3D)
+  EixoVarreduraX := Image1.Width div 4; // Eixo à esquerda
+  Image1.Canvas.Pen.Color := clGray;
+  Image1.Canvas.Pen.Style := psDot;
+  Image1.Canvas.MoveTo(EixoVarreduraX, 0);
+  Image1.Canvas.LineTo(EixoVarreduraX, Image1.Height);
+  Image1.Canvas.Pen.Style := psSolid; // Resetar estilo
+
+  // Reseta o perfil do usuário
+  SetLength(PerfilUsuario, 0);
+  ContadorPerfil := 0;
 end;
+procedure TForm1.MenuItem19Click(Sender: TObject);
+var
+  MTransform: TMatriz;
+  a, b: Integer;
+begin
+  op := 14;
+  flagOpcao8 := True;
+
+  RotacionarCasinha.Checked := False;
+  objetos.Checked := True;
+
+  RadioButton1.Checked := False;
+  RadioButton2.Checked := False;
+  RadioButton3.Checked := False;
+  RadioButton4.Checked := False;
+  RadioButton5.Checked := False;
+  RadioButton6.Checked := False;
+
+  SetLength(MTransform, 4, 4);
+  for a := 0 to 3 do for b := 0 to 3 do MTransform[a,b] := 0.0;
+  MTransform[0,0] := 1.0;
+  MTransform[1,1] := 1.0;
+  MTransform[2,2] := 1.0;
+  MTransform[3,3] := 1.0;
+
+  //desenharPratica1(MTransform);
+
+  SetLength(MTransform, 0, 0);
+end;  // <-- ESTE END ESTAVA FALTANDO!
+
+procedure TForm1.objetosChange(Sender: TObject);
+begin
+  RotacionarCasinha.Checked := False;
+end;
+
 procedure TForm1.DesenharSuperficieBilinear(P00, P01, P10, P11: TVector3D;
   Cor: TColor; const MTransform: TMatriz);
 var
-  u, v: Double;
+  u, v, step: Double;
   P_uv: TVector3D;
   MC, MResultado: TMatriz;
   px, py: Integer;
   z_prof: Double;
   ImgWidth, ImgHeight, canvasCenterX, canvasCenterY: Integer;
 begin
-  // Configurações do Canvas (igual a desenharZBufferObjetos)
   ImgWidth := Image1.Width;
   ImgHeight := Image1.Height;
   canvasCenterX := ImgWidth div 2;
   canvasCenterY := ImgHeight div 2;
 
-  // Prepara matrizes de ponto
   SetLength(MC, 1, 4);
   SetLength(MResultado, 1, 4);
   MC[0, 3] := 1.0;
 
-  // Itera sobre a superfície (u e v de 0 a 1)
+  // Passo menor para maior qualidade
+  step := 0.02;
+
   u := 0;
   while u <= 1.0 do
   begin
     v := 0;
     while v <= 1.0 do
     begin
-      // 1. Calcula o ponto P(u,v) usando a fórmula
+      // Calcula P(u,v) usando interpolação bilinear
       P_uv.x := P00.x * (1 - u) * (1 - v) +
                 P01.x * (1 - u) * v +
                 P10.x * u * (1 - v) +
@@ -678,20 +958,16 @@ begin
                 P10.z * u * (1 - v) +
                 P11.z * u * v;
 
-      // 2. Coloca o ponto na matriz MC para transformar
       MC[0, 0] := P_uv.x;
       MC[0, 1] := P_uv.y;
       MC[0, 2] := P_uv.z;
 
-      // 3. Aplica a Transformação Global (rotação, etc.)
       MultiplicarMatrizes(MC, MTransform, MResultado);
 
-      // 4. Projeta na tela e obtém profundidade
       px := canvasCenterX + Round(MResultado[0, 0]);
       py := canvasCenterY - Round(MResultado[0, 1]);
       z_prof := MResultado[0, 2];
 
-      // 5. Faz o Teste do Z-Buffer
       if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
       begin
         if z_prof < ZBuffer[py, px] then
@@ -701,9 +977,9 @@ begin
         end;
       end;
 
-      v := v + 0.05; // Ajuste o passo para mais qualidade/velocidade
+      v := v + step;
     end;
-    u := u + 0.05; // Ajuste o passo para mais qualidade/velocidade
+    u := u + step;
   end;
 
   SetLength(MC, 0, 0);
@@ -711,57 +987,46 @@ begin
 end;
 procedure TForm1.desenharPratica1(const MTransform: TMatriz);
 var
-  // Os 10 vértices do objeto
   V: array[1..10] of TVector3D;
-  // Variáveis para limpar o Z-Buffer
   x_idx, y_idx: Integer;
 begin
-  // 1. Define os 10 Vértices (SINTAXE CORRIGIDA)
-  with V[1]  do begin x := 0;   y := 0;   z := 0;   end; // (0,0,0)
-  with V[2]  do begin x := 0;   y := 0;   z := 80;  end; // (0,0,80)
-  with V[3]  do begin x := 0;   y := 40;  z := 80;  end; // (0,40,80)
-  with V[4]  do begin x := 20;  y := 0;   z := 0;   end; // (20,0,0)
-  with V[5]  do begin x := 20;  y := 0;   z := 80;  end; // (20,0,80)
-  with V[6]  do begin x := 20;  y := 40;  z := 80;  end; // (20,40,80)
-  with V[7]  do begin x := 100; y := 0;   z := 0;   end; // (100,0,0)
-  with V[8]  do begin x := 100; y := 40;  z := 0;   end; // (100,40,0)
-  with V[9]  do begin x := 120; y := 0;   z := 0;   end; // (120,0,0)
-  with V[10] do begin x := 120; y := 40;  z := 0;   end; // (120,40,0)
+  // Define os 10 Vértices
+  V[1].x := 0;   V[1].y := 0;   V[1].z := 0;
+  V[2].x := 0;   V[2].y := 0;   V[2].z := 80;
+  V[3].x := 0;   V[3].y := 40;  V[3].z := 80;
+  V[4].x := 20;  V[4].y := 0;   V[4].z := 0;
+  V[5].x := 20;  V[5].y := 0;   V[5].z := 80;
+  V[6].x := 20;  V[6].y := 40;  V[6].z := 80;
+  V[7].x := 100; V[7].y := 0;   V[7].z := 0;
+  V[8].x := 100; V[8].y := 40;  V[8].z := 0;
+  V[9].x := 120; V[9].y := 0;   V[9].z := 0;
+  V[10].x := 120; V[10].y := 40; V[10].z := 0;
 
-  // 2. Limpa o Canvas e o Z-Buffer (CORRIGIDO)
+  // Limpa Canvas e Z-Buffer
   Image1.Canvas.Brush.Color := clBlack;
   Image1.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
 
   SetLength(ZBuffer, Image1.Height, Image1.Width);
   for y_idx := 0 to Image1.Height - 1 do
     for x_idx := 0 to Image1.Width - 1 do
-      ZBuffer[y_idx, x_idx] := Math.Infinity;
+      ZBuffer[y_idx, x_idx] := 1e10; // Valor grande ao invés de Infinity
 
-  // 3. Desenha as 7 faces (3 quads, 4 triângulos)
-  // (Esta parte estava correta e permanece a mesma)
+  // Desenha as 7 faces usando superfícies bilineares
 
-  // Quadriláteros (4 vértices)
-  // Face 1 (Verde Lateral)
-  DesenharSuperficieBilinear(V[1], V[2], V[4], V[5], clGreen, MTransform);
-  // Face 2 (Verde Traseira)
-  DesenharSuperficieBilinear(V[2], V[3], V[5], V[6], clGreen, MTransform);
-  // Face 7 (Marrom Chão)
-  DesenharSuperficieBilinear(V[7], V[8], V[9], V[10], clMaroon, MTransform);
+  // Quadriláteros (4 vértices distintos)
+  DesenharSuperficieBilinear(V[1], V[2], V[4], V[5], clGreen, MTransform);  // Face 1 - Verde Lateral
+  DesenharSuperficieBilinear(V[2], V[3], V[5], V[6], clGreen, MTransform);  // Face 2 - Verde Traseira
+  DesenharSuperficieBilinear(V[7], V[8], V[9], V[10], clMaroon, MTransform); // Face 7 - Marrom Chão
 
-  // Triângulos (4 vértices, onde P10=P11)
-  // Face 3 (Verde Rampa Inf.) -> Vértices: V4, V5, V7
-  DesenharSuperficieBilinear(V[4], V[5], V[7], V[7], clGreen, MTransform);
-  // Face 4 (Amarelo Rampa) -> Vértices: V5, V6, V8
-  DesenharSuperficieBilinear(V[5], V[6], V[8], V[8], clYellow, MTransform);
-  // Face 5 (Azul Rampa) -> Vértices: V3, V6, V8
-  DesenharSuperficieBilinear(V[3], V[6], V[8], V[8], clBlue, MTransform);
-  // Face 6 (Vermelho Chão) -> Vértices: V4, V8, V7
-  DesenharSuperficieBilinear(V[4], V[8], V[7], V[7], clRed, MTransform);
+  // Triângulos (usando P10=P11 ou P01=P11)
+  DesenharSuperficieBilinear(V[4], V[5], V[7], V[7], clGreen, MTransform);  // Face 3 - Verde Rampa Inf
+  DesenharSuperficieBilinear(V[5], V[6], V[8], V[8], clYellow, MTransform); // Face 4 - Amarelo Rampa
+  DesenharSuperficieBilinear(V[3], V[6], V[8], V[8], clBlue, MTransform);   // Face 5 - Azul Rampa
+  DesenharSuperficieBilinear(V[4], V[7], V[8], V[8], clRed, MTransform);    // Face 6 - Vermelho Chão
 end;
-
 procedure TForm1.RotacionarCasinhaChange(Sender: TObject);
 begin
-
+  objetos.checked:=False;
 end;
 
 procedure TForm1.Edit5Change(Sender: TObject);
@@ -1729,16 +1994,19 @@ begin
 
   SetLength(MTransform, 0, 0);
 end;
+
 procedure TForm1.desenharZBufferObjetos(const MTransform: TMatriz);
 var
-  // ... (variáveis existentes, nenhuma mudança aqui) ...
   MC, MResultado: TMatriz;
-  ImgWidth, ImgHeight, canvasCenterX, canvasCenterY, px, py : Integer;
+  ImgWidth, ImgHeight, canvasCenterX, canvasCenterY, px, py: Integer;
   x_idx, y_idx: Integer;
   x_obj, y_obj, z_obj, t_obj, a_obj, b_obj, z_prof: Double;
-
+  // Variáveis para objetos da Aula 19 (Prática 1)
+  V: array[1..10] of TVector3D;
+  u, l, step: Double;
+  P_uv: TVector3D;
 begin
-  // 1. Inicializar Canvas e Z-Buffer (Sem mudanças)
+  // 1. Inicializar Canvas e Z-Buffer
   ImgWidth := Image1.Width;
   ImgHeight := Image1.Height;
   canvasCenterX := ImgWidth div 2;
@@ -1752,16 +2020,12 @@ begin
     for x_idx := 0 to ImgWidth - 1 do
       ZBuffer[y_idx, x_idx] := Math.Infinity;
 
-  // 2. Preparar Matrizes (Sem mudanças)
+  // 2. Preparar Matrizes
   SetLength(MC, 1, 4);
   SetLength(MResultado, 1, 4);
-
-  // 3. (Bloco de construção da matriz foi removido, está correto)
-
-  // 4. Desenhar Objetos com Z-Buffer
   MC[0, 3] := 1.0;
 
-  // ... (Objetos 1, 2, 3, 4 permanecem exatamente iguais) ...
+  // 3. Desenhar Objetos da Aula 17 (Z-Buffer original)
 
   // Objeto 1 (Azul)
   for x_idx := 10 to 30 do
@@ -1855,10 +2119,6 @@ begin
     a_obj := a_obj + 0.05;
   end;
 
-  // ***************************************************************
-  // * MODIFICAÇÃO NO CUBO (OBJETO 5)
-  // ***************************************************************
-
   // Objeto 5 (Cubo Multi-colorido)
 
   // Face 1 (Top, z = 20) -> VERMELHO
@@ -1876,7 +2136,7 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clRed; // <-- MUDADO
+          Image1.Canvas.Pixels[px, py] := clRed;
         end;
     end;
   end;
@@ -1896,7 +2156,7 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clRed; // <-- MUDADO
+          Image1.Canvas.Pixels[px, py] := clRed;
         end;
     end;
   end;
@@ -1905,7 +2165,7 @@ begin
   y_obj := 20;
   for x_idx := -20 to 20 do
   begin
-    for y_idx := -20 to 20 do // iterando em Z
+    for y_idx := -20 to 20 do
     begin
       z_obj := y_idx;
       MC[0,0] := x_idx; MC[0,1] := y_obj; MC[0,2] := z_obj;
@@ -1917,7 +2177,7 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clBlue; // <-- MUDADO
+          Image1.Canvas.Pixels[px, py] := clBlue;
         end;
     end;
   end;
@@ -1926,7 +2186,7 @@ begin
   y_obj := -20;
   for x_idx := -20 to 20 do
   begin
-    for y_idx := -20 to 20 do // iterando em Z
+    for y_idx := -20 to 20 do
     begin
       z_obj := y_idx;
       MC[0,0] := x_idx; MC[0,1] := y_obj; MC[0,2] := z_obj;
@@ -1938,16 +2198,16 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clBlue; // <-- MUDADO
+          Image1.Canvas.Pixels[px, py] := clBlue;
         end;
     end;
   end;
 
   // Face 5 (Right, x = 20) -> VERDE
   x_obj := 20;
-  for x_idx := -20 to 20 do // iterando em Y
+  for x_idx := -20 to 20 do
   begin
-    for y_idx := -20 to 20 do // iterando em Z
+    for y_idx := -20 to 20 do
     begin
       y_obj := x_idx;
       z_obj := y_idx;
@@ -1960,16 +2220,16 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clGreen; // <-- MUDADO
+          Image1.Canvas.Pixels[px, py] := clGreen;
         end;
     end;
   end;
 
   // Face 6 (Left, x = -20) -> VERDE
   x_obj := -20;
-  for x_idx := -20 to 20 do // iterando em Y
+  for x_idx := -20 to 20 do
   begin
-    for y_idx := -20 to 20 do // iterando em Z
+    for y_idx := -20 to 20 do
     begin
       y_obj := x_idx;
       z_obj := y_idx;
@@ -1982,10 +2242,33 @@ begin
         if z_prof < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clGreen; // <-- MUDADO
+          Image1.Canvas.Pixels[px, py] := clGreen;
         end;
     end;
   end;
+
+  // 4. Desenhar Objetos da Aula 19 (Prática 1 - Superfícies Bilineares)
+
+  // Define os 10 Vértices do objeto da Prática 1
+  V[1].x := 0;   V[1].y := 0;   V[1].z := 0;
+  V[2].x := 0;   V[2].y := 0;   V[2].z := 80;
+  V[3].x := 0;   V[3].y := 40;  V[3].z := 80;
+  V[4].x := 20;  V[4].y := 0;   V[4].z := 0;
+  V[5].x := 20;  V[5].y := 0;   V[5].z := 80;
+  V[6].x := 20;  V[6].y := 40;  V[6].z := 80;
+  V[7].x := 100; V[7].y := 0;   V[7].z := 0;
+  V[8].x := 100; V[8].y := 40;  V[8].z := 0;
+  V[9].x := 120; V[9].y := 0;   V[9].z := 0;
+  V[10].x := 120; V[10].y := 40; V[10].z := 0;
+
+  // Desenha as 7 faces usando superfícies bilineares
+  DesenharSuperficieBilinear(V[1], V[2], V[4], V[5], clGreen, MTransform);   // Face 1 - Verde Lateral
+  DesenharSuperficieBilinear(V[2], V[3], V[5], V[6], clGreen, MTransform);   // Face 2 - Verde Traseira
+  DesenharSuperficieBilinear(V[7], V[8], V[9], V[10], clMaroon, MTransform); // Face 7 - Marrom Chão
+  DesenharSuperficieBilinear(V[4], V[5], V[7], V[7], clGreen, MTransform);   // Face 3 - Verde Rampa Inf
+  DesenharSuperficieBilinear(V[5], V[6], V[8], V[8], clYellow, MTransform);  // Face 4 - Amarelo Rampa
+  DesenharSuperficieBilinear(V[3], V[6], V[8], V[8], clBlue, MTransform);    // Face 5 - Azul Rampa
+  DesenharSuperficieBilinear(V[4], V[7], V[8], V[8], clRed, MTransform);     // Face 6 - Vermelho Chão
 
   // Limpa matrizes
   SetLength(MC, 0, 0);
