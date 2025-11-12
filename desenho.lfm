@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = -69
+  Left = -3
   Height = 1026
-  Top = 142
+  Top = 105
   Width = 1920
   Caption = 'Form1'
   ClientHeight = 0
@@ -13,7 +13,7 @@ object Form1: TForm1
   object Image1: TImage
     Left = 320
     Height = 564
-    Top = 4
+    Top = 8
     Width = 1012
     Transparent = True
     OnClick = Image1Click
@@ -344,14 +344,14 @@ object Form1: TForm1
     TabOrder = 34
     OnChange = RotacionarCasinhaChange
   end
-  object Aula19Pratica1: TCheckBox
+  object objetos: TCheckBox
     Left = 1664
     Height = 24
     Top = 248
     Width = 73
     Caption = 'Objetos'
     TabOrder = 35
-    OnChange = Aula19Pratica1Change
+    OnChange = objetosChange
   end
   object Button2: TButton
     Left = 1368
@@ -360,13 +360,14 @@ object Form1: TForm1
     Width = 200
     Caption = 'Gerar Desenho Varredura'
     TabOrder = 36
+    OnClick = Button2Click
   end
-  object Aula19Pratica2: TCheckBox
+  object rotacionarVarredura: TCheckBox
     Left = 1664
     Height = 24
     Top = 280
-    Width = 159
-    Caption = 'Objetos Aula 18 e 19'
+    Width = 212
+    Caption = 'Rotacionar Objeto Varredura'
     TabOrder = 37
   end
   object MainMenu1: TMainMenu
@@ -408,7 +409,7 @@ object Form1: TForm1
         OnClick = MenuItem9Click
       end
       object MenuItem10: TMenuItem
-        Caption = 'Projeção 3D->2D'
+        Caption = 'Projeção 3D->2D (casinha)'
         OnClick = MenuItem10Click
       end
       object MenuItem11: TMenuItem
@@ -436,11 +437,8 @@ object Form1: TForm1
         OnClick = MenuItem17Click
       end
       object MenuItem18: TMenuItem
-        Caption = 'Superfície Bilinear'
+        Caption = 'Varredura Rotacional'
         OnClick = MenuItem18Click
-      end
-      object MenuItem19: TMenuItem
-        Caption = 'Iniciar Desenho Varredura'
       end
     end
   end
