@@ -1086,112 +1086,70 @@ end;
 
 procedure TForm1.DesenharCenaIluminada(Modelo: Integer);
 var
-  // --- Constantes da Cena (do PDF) ---
   PosObservador, PosLuz: TVector3D;
-  Ia, Il: TCorVector; // Intensidades (Branco)
-  MatEsfera, MatPlano: TMaterial;
+  Ia, Il: TCorVector;
+  MatEsfera: TMaterial;
   K_Atenuacao: Double;
 
-  // --- Variáveis de Loop ---
-  x, y: Integer;
   a, b, RaioEsfera, step: Double;
-  P, N, L, S, R: TVector3D; // Ponto, Normal, Luz, Observador, Reflexão
+  P, N, L, S, H: TVector3D; // H = halfway vector (Blinn-Phong)
   px, py: Integer;
   canvasCenterX, canvasCenterY: Integer;
   Intensidade, I_Amb, I_Dif, I_Esp: TCorVector;
-  cosTheta, cosAlpha, DistLuz: Double;
-  CorFinal: TColor;
-  Z_Plano: Double;
+  cosTheta, cosNH: Double;
+  DistLuz, atenuacao: Double;
+
+  // função auxiliar local para limitar componentes entre 0 e 1
+  function ClampColor(const C: TCorVector): TCorVector;
+  begin
+    Result.x := C.x;
+    Result.y := C.y;
+    Result.z := C.z;
+    if Result.x < 0 then Result.x := 0;
+    if Result.y < 0 then Result.y := 0;
+    if Result.z < 0 then Result.z := 0;
+    if Result.x > 1 then Result.x := 1;
+    if Result.y > 1 then Result.y := 1;
+    if Result.z > 1 then Result.z := 1;
+  end;
 
 begin
-  // --- 1. Configurar Cena e Constantes ---
+  // --- Preparação ---
   LimparZBuffer;
   canvasCenterX := Image1.Width div 2;
   canvasCenterY := Image1.Height div 2;
-  Z_Plano := -50.0; // Coloca o plano na base da esfera
 
-  PosObservador.x := 0;   PosObservador.y := 0;   PosObservador.z := 200; // Observador mais distante
-  PosLuz.x := 100;  PosLuz.y := 100;  PosLuz.z := 100; // Luz em (100,100,100)
+  // --- Configuração da Cena ---
+  PosObservador.x := 100;
+  PosObservador.y := 0;
+  PosObservador.z := 100;
 
-  // Luz Ambiente e Luz Pontual (Branca)
-  Ia.x := 0.2; Ia.y := 0.2; Ia.z := 0.2; // Luz ambiente fraca
-  Il.x := 1.0; Il.y := 1.0; Il.z := 1.0; // Luz pontual forte
+  PosLuz.x := 0;
+  PosLuz.y := 200;
+  PosLuz.z := 100;
 
-  K_Atenuacao := 1.0; // Constante K para atenuação
+  // Luz ambiente
+  Ia.x := 0.3; Ia.y := 0.3; Ia.z := 0.3;
 
-  // Material da Esfera (Rosa/Magenta) (Kd=0.3, Ks=0.8)
-  MatEsfera.Ka.x := 1.0; MatEsfera.Ka.y := 0.2; MatEsfera.Ka.z := 0.8; // Cor Ambiente
-  MatEsfera.Kd.x := 0.7; MatEsfera.Kd.y := 0.7; MatEsfera.Kd.z := 0.7; // Coef. Difuso (do PDF)
-  MatEsfera.Ks.x := 0.8; MatEsfera.Ks.y := 0.8; MatEsfera.Ks.z := 0.8; // Coef. Especular (do PDF)
-  MatEsfera.n := 32; // Brilho (shininess)
+  // Luz pontual
+  Il.x := 1.0; Il.y := 1.0; Il.z := 1.0;
 
-{ MODIFICAÇÃO: Removido o desenho do Plano
-  // Material do Plano (Azul) (Kd=0.7, Ks=0.4)
-  MatPlano.Ka.x := 0.2; MatPlano.Ka.y := 0.2; MatPlano.Ka.z := 1.0; // Cor Ambiente
-  MatPlano.Kd.x := 0.7; MatPlano.Kd.y := 0.7; MatPlano.Kd.z := 0.7; // Coef. Difuso (do PDF)
-  MatPlano.Ks.x := 0.4; MatPlano.Ks.y := 0.4; MatPlano.Ks.z := 0.4; // Coef. Especular (do PDF)
-  MatPlano.n := 10;
+  // Atenuação: valor por você ajustável. 0.01..0.1 costuma dar bom resultado.
+  // A fórmula usada abaixo será: atenuacao = 1 / (1 + K_Atenuacao * DistLuz)
+  K_Atenuacao := 0.01; // experimente 0.01, 0.02 ou 0.05 — evite valores grandes
 
-  // --- 2. Desenhar o Plano (Lado 100 -> -100 a 100) ---
-  N.x := 0; N.y := 0; N.z := 1; // Normal do plano é sempre para cima
+  // --- Material da Esfera ---
+  MatEsfera.Ka.x := 0.7; MatEsfera.Ka.y := 0.7; MatEsfera.Ka.z := 0.8;
+  MatEsfera.Kd.x := 0.3; MatEsfera.Kd.y := 0.7; MatEsfera.Kd.z := 0.7;
+  MatEsfera.Ks.x := 1.0; MatEsfera.Ks.y := 1.0; MatEsfera.Ks.z := 1.0;
+  MatEsfera.n := 16;
 
-  for x := -100 to 100 do
-  begin
-    for y := -100 to 100 do
-    begin
-      P.x := x; P.y := y; P.z := Z_Plano;
-
-      // --- Calcular Vetores ---
-      L := Normalizar(Subtrair(PosLuz, P)); // Vetor da Luz
-      S := Normalizar(Subtrair(PosObservador, P)); // Vetor do Observador
-
-      // --- Calcular Iluminação (Modelo 1: Lambert) ---
-      cosTheta := ProdutoEscalar(N, L);
-      if cosTheta < 0 then cosTheta := 0; // Luz não atravessa
-
-      I_Amb := MultiplicarComponente(Ia, MatPlano.Ka);
-      I_Dif := MultiplicarComponente(Il, MatPlano.Kd);
-      I_Dif := MultiplicarEscalar(I_Dif, cosTheta);
-
-      Intensidade := Adicionar(I_Amb, I_Dif);
-
-      // --- Calcular Iluminação (Modelo 2: Phong) ---
-      if (Modelo = 2) then
-      begin
-        R := Subtrair(MultiplicarEscalar(N, 2 * cosTheta), L); // Vetor Refletido
-        cosAlpha := ProdutoEscalar(Normalizar(R), S);
-        if cosAlpha < 0 then cosAlpha := 0;
-
-        DistLuz := Magnitude(Subtrair(PosLuz, P));
-
-        // Adiciona componente Especular com Atenuação
-        I_Esp := MultiplicarComponente(Il, MatPlano.Ks);
-        I_Esp := MultiplicarEscalar(I_Esp, Power(cosAlpha, MatPlano.n));
-
-        // Aplica Atenuação a Difusa e Especular
-        Intensidade := Adicionar(I_Amb, MultiplicarEscalar(Adicionar(I_Dif, I_Esp), 1.0 / (DistLuz + K_Atenuacao)));
-      end;
-
-      // --- Desenhar Pixel ---
-      CorFinal := CalcularCor(Intensidade);
-      px := canvasCenterX + Round(P.x);
-      py := canvasCenterY - Round(P.y); // Projeção Ortogonal
-
-      if (px >= 0) and (px < Image1.Width) and (py >= 0) and (py < Image1.Height) then
-      begin
-        if P.z < ZBuffer[py, px] then
-        begin
-          ZBuffer[py, px] := P.z;
-          Image1.Canvas.Pixels[px, py] := CorFinal;
-        end;
-      end;
-    end;
-  end;
-FIM DA MODIFICAÇÃO }
-
-  // --- 3. Desenhar a Esfera (Centro (0,0,0), Raio 50) ---
+  // --- Desenhar a Esfera ---
   RaioEsfera := 50.0;
-  step := 0.01; // Mais rápido: 0.1, Mais lento (melhor): 0.05
+
+  // ATENÇÃO: step muito pequeno (ex: 0.001) vai demorar MUITO.
+  // Recomendo step := 0.02..0.05 para testes, ou trocar para rasterização por X/Y.
+  step := 0.02;
 
   a := -Pi/2;
   while a <= Pi/2 do
@@ -1199,42 +1157,61 @@ FIM DA MODIFICAÇÃO }
     b := -Pi;
     while b <= Pi do
     begin
+      // Coordenadas da esfera (parametrização)
       P.x := RaioEsfera * cos(a) * cos(b);
       P.y := RaioEsfera * cos(a) * sin(b);
       P.z := RaioEsfera * sin(a);
 
-      // --- Calcular Vetores ---
-      N := Normalizar(P); // Normal da esfera no centro é só normalizar o Ponto
+      // Normal (no caso de esfera centrada na origem, é a própria P normalizada)
+      N := Normalizar(P);
+
+      // Vetor da Luz (direção do ponto para a fonte de luz)
       L := Normalizar(Subtrair(PosLuz, P));
+
+      // Vetor direção do observador
       S := Normalizar(Subtrair(PosObservador, P));
 
-      // --- Calcular Iluminação (Modelo 1: Lambert) ---
+      // --- Componente Ambiente (sem atenuação normalmente) ---
+      I_Amb := MultiplicarComponente(Ia, MatEsfera.Ka);
+
+      // --- Componente Difusa (Lambert) ---
       cosTheta := ProdutoEscalar(N, L);
       if cosTheta < 0 then cosTheta := 0;
 
-      I_Amb := MultiplicarComponente(Ia, MatEsfera.Ka);
       I_Dif := MultiplicarComponente(Il, MatEsfera.Kd);
       I_Dif := MultiplicarEscalar(I_Dif, cosTheta);
 
+      // Começamos com ambiente + difuso (ambiente não atenuado)
       Intensidade := Adicionar(I_Amb, I_Dif);
 
-      // --- Calcular Iluminação (Modelo 2: Phong) ---
-      if (Modelo = 2) then
+      // --- Modelo 2: Phong / Blinn-Phong ---
+      if Modelo = 2 then
       begin
-        R := Subtrair(MultiplicarEscalar(N, 2 * cosTheta), L);
-        cosAlpha := ProdutoEscalar(Normalizar(R), S);
-        if cosAlpha < 0 then cosAlpha := 0;
-
+        // Distância até a luz (para atenuação)
         DistLuz := Magnitude(Subtrair(PosLuz, P));
 
-        I_Esp := MultiplicarComponente(Il, MatEsfera.Ks);
-        I_Esp := MultiplicarEscalar(I_Esp, Power(cosAlpha, MatEsfera.n));
+        // Atenuação (linear suave): 1 / (1 + k * d)
+        atenuacao := 1.0 / (1.0 + K_Atenuacao * DistLuz);
 
-        Intensidade := Adicionar(I_Amb, MultiplicarEscalar(Adicionar(I_Dif, I_Esp), 1.0 / (DistLuz + K_Atenuacao)));
+        // Usando Blinn-Phong: H = normalize(L + S)
+        H := Normalizar(Adicionar(L, S));
+
+        // cos between normal and half-vector
+        cosNH := ProdutoEscalar(N, H);
+        if cosNH < 0 then cosNH := 0;
+
+        // componente especular
+        I_Esp := MultiplicarComponente(Il, MatEsfera.Ks);
+        I_Esp := MultiplicarEscalar(I_Esp, Power(cosNH, MatEsfera.n));
+
+        // Aplicar atenuação às componentes provenientes da fonte (difusa+especular)
+        Intensidade := Adicionar(I_Amb, MultiplicarEscalar(Adicionar(I_Dif, I_Esp), atenuacao));
       end;
 
-      // --- Desenhar Pixel ---
-      CorFinal := CalcularCor(Intensidade);
+      // --- Garantir valores dentro do intervalo [0,1] antes de converter para cor ---
+      Intensidade := ClampColor(Intensidade);
+
+      // --- Desenhar Pixel (projeção ortogonal usada por você) ---
       px := canvasCenterX + Round(P.x);
       py := canvasCenterY - Round(P.y);
 
@@ -1243,14 +1220,18 @@ FIM DA MODIFICAÇÃO }
         if P.z < ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := P.z;
-          Image1.Canvas.Pixels[px, py] := CorFinal;
+          Image1.Canvas.Pixels[px, py] := CalcularCor(Intensidade);
         end;
       end;
+
       b := b + step;
     end;
     a := a + step;
   end;
 end;
+
+
+
 { TForm1 }
 
 // ****** INÍCIO DO NOVO BLOCO DE FUNÇÕES AUXILIARES ******
