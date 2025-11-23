@@ -15,6 +15,19 @@ type
     x, y, z: Double;
   end;
 type
+  // NOVO: Um vetor para cores (R, G, B)
+  TCorVector = TVector3D;
+
+  // NOVO: Constantes de material para iluminação
+  TMaterial = record
+    Ka: TCorVector; // Constante Ambiente
+    Kd: TCorVector; // Constante Difusa
+    Ks: TCorVector; // Constante Especular
+    n: Double;       // Expoente Especular
+  end;
+
+
+type
 
 
 
@@ -22,6 +35,9 @@ type
 
   TForm1 = class(TForm)
     Button1: TButton;
+    MenuItem22: TMenuItem;
+    MenuItem20: TMenuItem;
+    MenuItem21: TMenuItem;
     rotacionarVarredura: TCheckBox;
     objetos: TCheckBox;
     Button2: TButton;
@@ -81,11 +97,13 @@ type
     RadioButton4: TRadioButton;
     RadioButton5: TRadioButton;
     RadioButton6: TRadioButton;
+    procedure MenuItem22Click(Sender: TObject);
+    procedure MenuItem23Click(Sender: TObject);
     procedure objetosChange(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure MenuItem18Click(Sender: TObject);
-    procedure MenuItem19Click(Sender: TObject);
+    procedure MenuItem21Click(Sender: TObject);
     procedure RotacionarCasinhaChange(Sender: TObject);
     procedure Edit5Change(Sender: TObject);
     procedure Edit6Change(Sender: TObject);
@@ -104,7 +122,7 @@ type
     procedure MenuItem12Click(Sender: TObject);
     procedure MenuItem13Click(Sender: TObject);
     procedure MenuItem14Click(Sender: TObject);
-    procedure MenuItem15Click(Sender: TObject);
+    procedure MenuItem20Click(Sender: TObject);
     procedure MenuItem16Click(Sender: TObject);
     procedure MenuItem16MeasureItem(Sender: TObject; ACanvas: TCanvas;
       var AWidth, AHeight: Integer);
@@ -137,7 +155,20 @@ type
     procedure desenharZBufferObjetos(const MTransform: TMatriz);
     procedure desenharPratica1(const MTransform: TMatriz);
     function RotacionarPonto(P: TPoint; EixoX, CanvasCenterY: Integer; Angulo: Double): TVector3D;
+    // NOVAS Funções de Vetores 3D
+    function Vetor(P1, P2: TVector3D): TVector3D;
+    function Subtrair(V1, V2: TVector3D): TVector3D;
+    function Adicionar(V1, V2: TVector3D): TVector3D;
+    function MultiplicarEscalar(V: TVector3D; s: Double): TVector3D;
+    function MultiplicarComponente(V1, V2: TCorVector): TCorVector;
+    function Magnitude(V: TVector3D): Double;
+    function Normalizar(V: TVector3D): TVector3D;
+    function ProdutoEscalar(V1, V2: TVector3D): Double;
+    function CalcularCor(Intensidade: TCorVector): TColor;
+    procedure LimparZBuffer;
 
+    // NOVAS Funções de Iluminação (Trabalho Prático)
+    procedure DesenharCenaIluminada(Modelo: Integer);
   private
     ZBuffer: TMatriz;
     EixoVarreduraX: Integer;
@@ -992,7 +1023,7 @@ begin
   SetLength(PerfilUsuario, 0);
   ContadorPerfil := 0;
 end;
-procedure TForm1.MenuItem19Click(Sender: TObject);
+procedure TForm1.MenuItem21Click(Sender: TObject);
 var
   MTransform: TMatriz;
   a, b: Integer;
@@ -1026,6 +1057,307 @@ procedure TForm1.objetosChange(Sender: TObject);
 begin
   RotacionarCasinha.Checked := False;
 end;
+
+procedure TForm1.MenuItem22Click(Sender: TObject);
+begin
+  // Modelo 1: I = IaKa + Il.Kd.cos(theta)
+  op := 21; // Novo 'op' para Iluminação
+  flagOpcao8 := False;
+  RotacionarCasinha.Checked := False;
+  objetos.Checked := False;
+  rotacionarVarredura.Checked := False;
+
+  DesenharCenaIluminada(1); // Chama o Modelo 1
+
+end;
+
+procedure TForm1.MenuItem23Click(Sender: TObject);
+begin
+  // Modelo 2: I = IaKa + (Il/(d+K)) * (Kd.cos(theta) + Ks.cos(alpha)^n)
+  op := 22; // Novo 'op' para Iluminação
+  flagOpcao8 := False;
+  RotacionarCasinha.Checked := False;
+  objetos.Checked := False;
+  rotacionarVarredura.Checked := False;
+
+  DesenharCenaIluminada(2); // Chama o Modelo 2
+end;
+// ****** INÍCIO DA NOVA FUNÇÃO DE DESENHO (ILUMINAÇÃO) ******
+
+procedure TForm1.DesenharCenaIluminada(Modelo: Integer);
+var
+  // --- Constantes da Cena (do PDF) ---
+  PosObservador, PosLuz: TVector3D;
+  Ia, Il: TCorVector; // Intensidades (Branco)
+  MatEsfera, MatPlano: TMaterial;
+  K_Atenuacao: Double;
+
+  // --- Variáveis de Loop ---
+  x, y: Integer;
+  a, b, RaioEsfera, step: Double;
+  P, N, L, S, R: TVector3D; // Ponto, Normal, Luz, Observador, Reflexão
+  px, py: Integer;
+  canvasCenterX, canvasCenterY: Integer;
+  Intensidade, I_Amb, I_Dif, I_Esp: TCorVector;
+  cosTheta, cosAlpha, DistLuz: Double;
+  CorFinal: TColor;
+  Z_Plano: Double;
+
+begin
+  // --- 1. Configurar Cena e Constantes ---
+  LimparZBuffer;
+  canvasCenterX := Image1.Width div 2;
+  canvasCenterY := Image1.Height div 2;
+  Z_Plano := -50.0; // Coloca o plano na base da esfera
+
+  PosObservador.x := 0;   PosObservador.y := 0;   PosObservador.z := 200; // Observador mais distante
+  PosLuz.x := 100;  PosLuz.y := 100;  PosLuz.z := 100; // Luz em (100,100,100)
+
+  // Luz Ambiente e Luz Pontual (Branca)
+  Ia.x := 0.2; Ia.y := 0.2; Ia.z := 0.2; // Luz ambiente fraca
+  Il.x := 1.0; Il.y := 1.0; Il.z := 1.0; // Luz pontual forte
+
+  K_Atenuacao := 1.0; // Constante K para atenuação
+
+  // Material da Esfera (Rosa/Magenta) (Kd=0.3, Ks=0.8)
+  MatEsfera.Ka.x := 1.0; MatEsfera.Ka.y := 0.2; MatEsfera.Ka.z := 0.8; // Cor Ambiente
+  MatEsfera.Kd.x := 0.7; MatEsfera.Kd.y := 0.7; MatEsfera.Kd.z := 0.7; // Coef. Difuso (do PDF)
+  MatEsfera.Ks.x := 0.8; MatEsfera.Ks.y := 0.8; MatEsfera.Ks.z := 0.8; // Coef. Especular (do PDF)
+  MatEsfera.n := 32; // Brilho (shininess)
+
+{ MODIFICAÇÃO: Removido o desenho do Plano
+  // Material do Plano (Azul) (Kd=0.7, Ks=0.4)
+  MatPlano.Ka.x := 0.2; MatPlano.Ka.y := 0.2; MatPlano.Ka.z := 1.0; // Cor Ambiente
+  MatPlano.Kd.x := 0.7; MatPlano.Kd.y := 0.7; MatPlano.Kd.z := 0.7; // Coef. Difuso (do PDF)
+  MatPlano.Ks.x := 0.4; MatPlano.Ks.y := 0.4; MatPlano.Ks.z := 0.4; // Coef. Especular (do PDF)
+  MatPlano.n := 10;
+
+  // --- 2. Desenhar o Plano (Lado 100 -> -100 a 100) ---
+  N.x := 0; N.y := 0; N.z := 1; // Normal do plano é sempre para cima
+
+  for x := -100 to 100 do
+  begin
+    for y := -100 to 100 do
+    begin
+      P.x := x; P.y := y; P.z := Z_Plano;
+
+      // --- Calcular Vetores ---
+      L := Normalizar(Subtrair(PosLuz, P)); // Vetor da Luz
+      S := Normalizar(Subtrair(PosObservador, P)); // Vetor do Observador
+
+      // --- Calcular Iluminação (Modelo 1: Lambert) ---
+      cosTheta := ProdutoEscalar(N, L);
+      if cosTheta < 0 then cosTheta := 0; // Luz não atravessa
+
+      I_Amb := MultiplicarComponente(Ia, MatPlano.Ka);
+      I_Dif := MultiplicarComponente(Il, MatPlano.Kd);
+      I_Dif := MultiplicarEscalar(I_Dif, cosTheta);
+
+      Intensidade := Adicionar(I_Amb, I_Dif);
+
+      // --- Calcular Iluminação (Modelo 2: Phong) ---
+      if (Modelo = 2) then
+      begin
+        R := Subtrair(MultiplicarEscalar(N, 2 * cosTheta), L); // Vetor Refletido
+        cosAlpha := ProdutoEscalar(Normalizar(R), S);
+        if cosAlpha < 0 then cosAlpha := 0;
+
+        DistLuz := Magnitude(Subtrair(PosLuz, P));
+
+        // Adiciona componente Especular com Atenuação
+        I_Esp := MultiplicarComponente(Il, MatPlano.Ks);
+        I_Esp := MultiplicarEscalar(I_Esp, Power(cosAlpha, MatPlano.n));
+
+        // Aplica Atenuação a Difusa e Especular
+        Intensidade := Adicionar(I_Amb, MultiplicarEscalar(Adicionar(I_Dif, I_Esp), 1.0 / (DistLuz + K_Atenuacao)));
+      end;
+
+      // --- Desenhar Pixel ---
+      CorFinal := CalcularCor(Intensidade);
+      px := canvasCenterX + Round(P.x);
+      py := canvasCenterY - Round(P.y); // Projeção Ortogonal
+
+      if (px >= 0) and (px < Image1.Width) and (py >= 0) and (py < Image1.Height) then
+      begin
+        if P.z < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := P.z;
+          Image1.Canvas.Pixels[px, py] := CorFinal;
+        end;
+      end;
+    end;
+  end;
+FIM DA MODIFICAÇÃO }
+
+  // --- 3. Desenhar a Esfera (Centro (0,0,0), Raio 50) ---
+  RaioEsfera := 50.0;
+  step := 0.01; // Mais rápido: 0.1, Mais lento (melhor): 0.05
+
+  a := -Pi/2;
+  while a <= Pi/2 do
+  begin
+    b := -Pi;
+    while b <= Pi do
+    begin
+      P.x := RaioEsfera * cos(a) * cos(b);
+      P.y := RaioEsfera * cos(a) * sin(b);
+      P.z := RaioEsfera * sin(a);
+
+      // --- Calcular Vetores ---
+      N := Normalizar(P); // Normal da esfera no centro é só normalizar o Ponto
+      L := Normalizar(Subtrair(PosLuz, P));
+      S := Normalizar(Subtrair(PosObservador, P));
+
+      // --- Calcular Iluminação (Modelo 1: Lambert) ---
+      cosTheta := ProdutoEscalar(N, L);
+      if cosTheta < 0 then cosTheta := 0;
+
+      I_Amb := MultiplicarComponente(Ia, MatEsfera.Ka);
+      I_Dif := MultiplicarComponente(Il, MatEsfera.Kd);
+      I_Dif := MultiplicarEscalar(I_Dif, cosTheta);
+
+      Intensidade := Adicionar(I_Amb, I_Dif);
+
+      // --- Calcular Iluminação (Modelo 2: Phong) ---
+      if (Modelo = 2) then
+      begin
+        R := Subtrair(MultiplicarEscalar(N, 2 * cosTheta), L);
+        cosAlpha := ProdutoEscalar(Normalizar(R), S);
+        if cosAlpha < 0 then cosAlpha := 0;
+
+        DistLuz := Magnitude(Subtrair(PosLuz, P));
+
+        I_Esp := MultiplicarComponente(Il, MatEsfera.Ks);
+        I_Esp := MultiplicarEscalar(I_Esp, Power(cosAlpha, MatEsfera.n));
+
+        Intensidade := Adicionar(I_Amb, MultiplicarEscalar(Adicionar(I_Dif, I_Esp), 1.0 / (DistLuz + K_Atenuacao)));
+      end;
+
+      // --- Desenhar Pixel ---
+      CorFinal := CalcularCor(Intensidade);
+      px := canvasCenterX + Round(P.x);
+      py := canvasCenterY - Round(P.y);
+
+      if (px >= 0) and (px < Image1.Width) and (py >= 0) and (py < Image1.Height) then
+      begin
+        if P.z < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := P.z;
+          Image1.Canvas.Pixels[px, py] := CorFinal;
+        end;
+      end;
+      b := b + step;
+    end;
+    a := a + step;
+  end;
+end;
+{ TForm1 }
+
+// ****** INÍCIO DO NOVO BLOCO DE FUNÇÕES AUXILIARES ******
+
+procedure TForm1.LimparZBuffer;
+var
+  x_idx, y_idx, ImgWidth, ImgHeight: Integer;
+begin
+  ImgWidth := Image1.Width;
+  ImgHeight := Image1.Height;
+
+  Image1.Canvas.Brush.Color := clBlack;
+  Image1.Canvas.FillRect(0, 0, ImgWidth, ImgHeight);
+
+  SetLength(ZBuffer, ImgHeight, ImgWidth);
+  for y_idx := 0 to ImgHeight - 1 do
+    for x_idx := 0 to ImgWidth - 1 do
+      ZBuffer[y_idx, x_idx] := Math.Infinity;
+end;
+
+function TForm1.Vetor(P1, P2: TVector3D): TVector3D;
+begin
+  Result.x := P2.x - P1.x;
+  Result.y := P2.y - P1.y;
+  Result.z := P2.z - P1.z;
+end;
+
+function TForm1.Subtrair(V1, V2: TVector3D): TVector3D;
+begin
+  Result.x := V1.x - V2.x;
+  Result.y := V1.y - V2.y;
+  Result.z := V1.z - V2.z;
+end;
+
+function TForm1.Adicionar(V1, V2: TVector3D): TVector3D;
+begin
+  Result.x := V1.x + V2.x;
+  Result.y := V1.y + V2.y;
+  Result.z := V1.z + V2.z;
+end;
+
+function TForm1.MultiplicarEscalar(V: TVector3D; s: Double): TVector3D;
+begin
+  Result.x := V.x * s;
+  Result.y := V.y * s;
+  Result.z := V.z * s;
+end;
+
+// Multiplicação componente a componente (para cores)
+function TForm1.MultiplicarComponente(V1, V2: TCorVector): TCorVector;
+begin
+  Result.x := V1.x * V2.x;
+  Result.y := V1.y * V2.y;
+  Result.z := V1.z * V2.z;
+end;
+
+function TForm1.Magnitude(V: TVector3D): Double;
+begin
+  Result := Sqrt(Sqr(V.x) + Sqr(V.y) + Sqr(V.z));
+end;
+
+function TForm1.Normalizar(V: TVector3D): TVector3D;
+var
+  mag: Double;
+begin
+  mag := Magnitude(V);
+  if mag = 0 then
+  begin
+    Result.x := 0; Result.y := 0; Result.z := 0;
+  end
+  else
+  begin
+    Result.x := V.x / mag;
+    Result.y := V.y / mag;
+    Result.z := V.z / mag;
+  end;
+end;
+
+function TForm1.ProdutoEscalar(V1, V2: TVector3D): Double;
+begin
+  Result := V1.x * V2.x + V1.y * V2.y + V1.z * V2.z;
+end;
+
+function TForm1.CalcularCor(Intensidade: TCorVector): TColor;
+var
+  r, g, b: Integer;
+begin
+  // 1. Limita (Clamp) a intensidade entre 0.0 e 1.0
+  if Intensidade.x < 0 then Intensidade.x := 0;
+  if Intensidade.x > 1 then Intensidade.x := 1;
+  if Intensidade.y < 0 then Intensidade.y := 0;
+  if Intensidade.y > 1 then Intensidade.y := 1;
+  if Intensidade.z < 0 then Intensidade.z := 0;
+  if Intensidade.z > 1 then Intensidade.z := 1;
+
+  // 2. Converte para 0-255
+  r := Round(Intensidade.x * 255);
+  g := Round(Intensidade.y * 255);
+  b := Round(Intensidade.z * 255);
+
+  // 3. Retorna a cor TColor
+  Result := RGBToColor(r, g, b);
+end;
+
+// ****** FIM DO NOVO BLOCO DE FUNÇÕES AUXILIARES ******
+
+// ****** FIM DA NOVA FUNÇÃO DE DESENHO (ILUMINAÇÃO) ******
 
 procedure TForm1.DesenharSuperficieBilinear(P00, P01, P10, P11: TVector3D;
   Cor: TColor; const MTransform: TMatriz);
@@ -2075,9 +2407,9 @@ begin
   op := 10;
 end;
 
-procedure TForm1.MenuItem15Click(Sender: TObject);
+procedure TForm1.MenuItem20Click(Sender: TObject);
 begin
-  desenhoAula16();
+
 end;
 
 procedure TForm1.MenuItem16Click(Sender: TObject);

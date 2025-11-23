@@ -4,8 +4,8 @@ object Form1: TForm1
   Top = 105
   Width = 1920
   Caption = 'Form1'
-  ClientHeight = 0
-  ClientWidth = 0
+  ClientHeight = 1026
+  ClientWidth = 1920
   DesignTimePPI = 120
   Menu = MainMenu1
   LCLVersion = '4.2.0.0'
@@ -439,6 +439,18 @@ object Form1: TForm1
       object MenuItem18: TMenuItem
         Caption = 'Varredura Rotacional'
         OnClick = MenuItem18Click
+      end
+      object MenuItem20: TMenuItem
+        Caption = 'Iluminação'
+        OnClick = MenuItem20Click
+        object MenuItem22: TMenuItem
+          Caption = 'Modelo 1'
+          OnClick = MenuItem22Click
+        end
+        object MenuItem23: TMenuItem
+          Caption = 'Modelo 2'
+          OnClick = MenuItem23Click
+        end
       end
     end
   end
