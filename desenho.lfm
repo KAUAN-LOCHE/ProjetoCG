@@ -1,10 +1,10 @@
 object Form1: TForm1
-  Left = 245
-  Height = 1026
-  Top = 99
+  Left = -67
+  Height = 1005
+  Top = 114
   Width = 1920
   Caption = 'Form1'
-  ClientHeight = 1026
+  ClientHeight = 1005
   ClientWidth = 1920
   DesignTimePPI = 120
   Menu = MainMenu1
@@ -362,13 +362,36 @@ object Form1: TForm1
     TabOrder = 36
     OnClick = Button2Click
   end
-  object rotacionarVarredura: TCheckBox
+  object rampa: TCheckBox
     Left = 1664
     Height = 24
     Top = 280
-    Width = 212
-    Caption = 'Rotacionar Objeto Varredura'
+    Width = 68
+    Caption = 'Rampa'
     TabOrder = 37
+  end
+  object Edit3: TEdit
+    Left = 1389
+    Height = 28
+    Top = 608
+    Width = 100
+    TabOrder = 38
+    Text = '1'
+  end
+  object Edit4: TEdit
+    Left = 1392
+    Height = 28
+    Top = 648
+    Width = 100
+    TabOrder = 39
+    Text = '0,01'
+  end
+  object Label3: TLabel
+    Left = 1399
+    Height = 20
+    Top = 584
+    Width = 72
+    Caption = 'Constantes'
   end
   object MainMenu1: TMainMenu
     Left = 240
@@ -451,6 +474,10 @@ object Form1: TForm1
           Caption = 'Modelo 2'
           OnClick = MenuItem23Click
         end
+      end
+      object MenuItem25: TMenuItem
+        Caption = 'MenuItem25'
+        OnClick = MenuItem25Click
       end
     end
   end

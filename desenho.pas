@@ -35,10 +35,15 @@ type
 
   TForm1 = class(TForm)
     Button1: TButton;
+    Edit3: TEdit;
+    Edit4: TEdit;
+    Label3: TLabel;
+    MenuItem25: TMenuItem;
     MenuItem22: TMenuItem;
     MenuItem20: TMenuItem;
     MenuItem21: TMenuItem;
-    rotacionarVarredura: TCheckBox;
+    MenuItem23: TMenuItem;
+    rampa: TCheckBox;
     objetos: TCheckBox;
     Button2: TButton;
     MenuItem18: TMenuItem;
@@ -97,8 +102,10 @@ type
     RadioButton4: TRadioButton;
     RadioButton5: TRadioButton;
     RadioButton6: TRadioButton;
+    procedure Button3Click(Sender: TObject);
     procedure MenuItem22Click(Sender: TObject);
     procedure MenuItem23Click(Sender: TObject);
+    procedure MenuItem25Click(Sender: TObject);
     procedure objetosChange(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
@@ -150,6 +157,7 @@ type
     procedure desenhoAula16();
     procedure DesenharLinhaManual(x1, y1, x2, y2: Integer; Cor: TColor);
     procedure desenhoAula16B();
+    procedure desenharPratica1(const MStatic, MRampa: TMatriz);
     function InverterCor(Cor: TColor): TColor;
     procedure MultiplicarMatrizes4x4(const Matriz1, Matriz2: TMatriz; var MResultado: TMatriz);
     procedure desenharZBufferObjetos(const MTransform: TMatriz);
@@ -205,6 +213,8 @@ begin
   y1 := -1;
   ContadorPerfil := 0;
   SetLength(PerfilUsuario,0);
+  SetLength(ZBuffer, Image1.Height, Image1.Width);
+
 end;
 
 
@@ -212,10 +222,72 @@ procedure TForm1.MenuItem1Click(Sender: TObject);
 begin
 
 end;
+function MakeColor(r, g, b: Double): TCorVector;
+begin
+  Result.x := r;
+  Result.y := g;
+  Result.z := b;
+end;
+
 
 procedure TForm1.MenuItem2Click(Sender: TObject);
 begin
 end;
+procedure TForm1.desenharPratica1(const MStatic, MRampa: TMatriz);
+var
+  x_idx, y_idx: Integer;
+
+  function P(x, y, z: Double): TVector3D;
+  begin
+    Result.x := x;
+    Result.y := y;
+    Result.z := z;
+  end;
+
+begin
+  SetLength(ZBuffer, Image1.Height, Image1.Width);
+  for y_idx := 0 to Image1.Height - 1 do
+    for x_idx := 0 to Image1.Width - 1 do
+      ZBuffer[y_idx, x_idx] := Math.Infinity;
+
+  // --- OBJETO 1: Tampa esquerda (Verde)
+  DesenharSuperficieBilinear(
+    P(0,40,80), P(20,40,80),
+    P(0,0,80),  P(20,0,80),
+    clGreen, MStatic);
+
+  // --- OBJETO 2: Frente/Fundo da caixa (Verde)
+  DesenharSuperficieBilinear(
+    P(0,0,80),  P(20,0,80),
+    P(0,0,0),   P(20,0,0),
+    clGreen, MStatic);
+
+  // --- OBJETO 6: Chão direito (Marrom)
+  DesenharSuperficieBilinear(
+    P(100,40,0),  P(120,40,0),
+    P(100,0,0),   P(120,0,0),
+    clMaroon, MStatic);
+
+  // --- OBJETO 3: Lateral da rampa (Amarelo)
+  DesenharSuperficieBilinear(
+    P(20,0,80),  P(20,40,80),
+    P(20,0,0),   P(20,40,0),
+    clYellow, MRampa);
+
+  // --- OBJETO 4: Rampa inclinada (Azul)
+  DesenharSuperficieBilinear(
+    P(20,0,80),  P(20,40,80),
+    P(100,0,0),  P(100,40,0),
+    clBlue, MRampa);
+
+  // --- OBJETO 5: Base da rampa (Vermelho)
+  DesenharSuperficieBilinear(
+    P(20,40,0),  P(100,40,0),
+    P(20,0,0),   P(100,0,0),
+    clRed, MRampa);
+
+end;
+
 
 procedure TForm1.Image1MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
@@ -509,23 +581,30 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 var
   a, b, cx, cy, cz : Integer;
-  MTransform, MHO, MHTPos, MHTNeg, MTemp : TMatriz;
+  MTransform, MHO, MHTPos, MHTNeg, MTemp, MIdentidade : TMatriz; // Adicionado MIdentidade
   aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, nn, oo, pp : Double;
   MC_Casinha : TMatriz;
   canvasCenterX, canvasCenterY : Integer;
 begin
-  // 1. INICIALIZAR MATRIZ DE TRANSFORMAÇÃO
+  // 1. INICIALIZAR MATRIZES
   SetLength(MTransform, 4, 4);
   SetLength(MHO, 4, 4);
   SetLength(MHTPos, 4, 4);
   SetLength(MHTNeg, 4, 4);
   SetLength(MTemp, 4, 4);
+  SetLength(MIdentidade, 4, 4); // Inicializa matriz para objetos estáticos
 
-  for a := 0 to 3 do for b := 0 to 3 do MTransform[a,b] := 0.0;
-  MTransform[0,0] := 1.0;
-  MTransform[1,1] := 1.0;
-  MTransform[2,2] := 1.0;
-  MTransform[3,3] := 1.0;
+  // Inicializa MTransform e MIdentidade com a Matriz Identidade
+  for a := 0 to 3 do
+  begin
+    for b := 0 to 3 do
+    begin
+      MTransform[a,b] := 0.0;
+      MIdentidade[a,b] := 0.0;
+    end;
+    MTransform[a,a] := 1.0;  // Diagonal principal = 1
+    MIdentidade[a,a] := 1.0; // Diagonal principal = 1
+  end;
 
   // 2. CONSTRUIR MATRIZ DE TRANSFORMAÇÃO
   if RadioButton1.Checked then
@@ -583,9 +662,14 @@ begin
     begin
       cx := 60; cy := 20; cz := 40; // Centro aproximado dos objetos da prática 1
     end
+    else if (op = 25) then // Se for a Prática da Rampa
+    begin
+      // Define um ponto de pivô lógico para a rampa (ex: a aresta superior onde ela conecta)
+      cx := 20; cy := 0; cz := 80;
+    end
     else
     begin
-      cx := 0; cy := 0; cz := 0; // Centro na origem para objetos Z-Buffer
+      cx := 0; cy := 0; cz := 0; // Centro na origem para outros casos
     end;
 
     aa := StrToFloat(Edit13.Text) * Pi / 180;
@@ -637,32 +721,37 @@ begin
   end;
 
   // 3. LIMPAR TELA
-  Image1.Canvas.Brush.Color := clBlack;
+ Image1.Canvas.Brush.Color := clBlack;
   Image1.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
 
   // 4. DECIDIR O QUE DESENHAR
-if RotacionarCasinha.Checked then
-begin
-  canvasCenterX := Image1.Width div 2;
-  canvasCenterY := Image1.Height div 2;
-  SetLength(MC_Casinha, 1, 4);
-  MTransform[0,2] := 0;
-  MTransform[1,2] := 0;
-  MTransform[2,2] := 0;
-  ProjecaoOrtografica(MC_Casinha, MTransform, canvasCenterX, canvasCenterY);
-  SetLength(MC_Casinha, 0, 0);
-end
-else if (RotacionarCasinha.Checked = false) and (op <> 13) then// Desenha todos os objetos (Aula 17, 18 e 19) com Z-Buffer
-begin
-  desenharZBufferObjetos(MTransform);
-end;
+  if RotacionarCasinha.Checked then
+  begin
+    canvasCenterX := Image1.Width div 2;
+    canvasCenterY := Image1.Height div 2;
+    SetLength(MC_Casinha, 1, 4);
+    MTransform[0,2] := 0; MTransform[1,2] := 0; MTransform[2,2] := 0;
+    ProjecaoOrtografica(MC_Casinha, MTransform, canvasCenterX, canvasCenterY);
+    SetLength(MC_Casinha, 0, 0);
+  end
+  else if (op = 25) then // Prática 1 (MenuItem25)
+  begin
+    if rampa.Checked then
+      // Apenas a rampa se move (MTransform), o resto fica estático (MIdentidade)
+      desenharPratica1(MIdentidade, MTransform)
+    else
+      // Tudo se move junto
+      desenharPratica1(MTransform, MTransform);
+  end
+  else if (RotacionarCasinha.Checked = false) and (op <> 13) then
+  begin
+    desenharZBufferObjetos(MTransform);
+  end;
 
-  // 5. LIMPAR MATRIZES
-  SetLength(MTransform, 0, 0);
-  SetLength(MHO, 0, 0);
-  SetLength(MHTPos, 0, 0);
-  SetLength(MHTNeg, 0, 0);
-  SetLength(MTemp, 0, 0);
+  // 5. LIMPEZA
+  SetLength(MTransform, 0, 0); SetLength(MIdentidade, 0, 0);
+  SetLength(MHO, 0, 0); SetLength(MHTPos, 0, 0);
+  SetLength(MHTNeg, 0, 0); SetLength(MTemp, 0, 0);
 end;
 procedure TForm1.Button2Click(Sender: TObject);
 var
@@ -1065,9 +1154,14 @@ begin
   flagOpcao8 := False;
   RotacionarCasinha.Checked := False;
   objetos.Checked := False;
-  rotacionarVarredura.Checked := False;
+  rampa.Checked := False;
 
   DesenharCenaIluminada(1); // Chama o Modelo 1
+
+end;
+
+procedure TForm1.Button3Click(Sender: TObject);
+begin
 
 end;
 
@@ -1078,77 +1172,199 @@ begin
   flagOpcao8 := False;
   RotacionarCasinha.Checked := False;
   objetos.Checked := False;
-  rotacionarVarredura.Checked := False;
+  rampa.Checked := False;
 
   DesenharCenaIluminada(2); // Chama o Modelo 2
 end;
-// ****** INÍCIO DA NOVA FUNÇÃO DE DESENHO (ILUMINAÇÃO) ******
+procedure TForm1.MenuItem25Click(Sender: TObject);
+var
+  MInicial, RotX, RotY, Temp: TMatriz;
+  a, b: Integer;
+  angX, angY: Double;
+begin
+  op := 25; // Define a operação para Prática 1
+  flagOpcao8 := True; // Habilita transformações
 
-procedure TForm1.DesenharCenaIluminada(Modelo: Integer);
+  // Reseta os checkboxes
+  RotacionarCasinha.Checked := False;
+  objetos.Checked := False;
+  rampa.Checked := True; // Deixa marcado para animar a rampa depois
+
+  // Limpa a tela
+  Image1.Canvas.Brush.Color := clBlack;
+  Image1.Canvas.FillRect(0, 0, Image1.Width, Image1.Height);
+
+  // Inicializa as matrizes
+  SetLength(MInicial, 4, 4);
+  SetLength(RotX, 4, 4);
+  SetLength(RotY, 4, 4);
+  SetLength(Temp, 4, 4);
+
+  // Preenche com Identidade (Diagonal = 1)
+  for a := 0 to 3 do
+  begin
+    for b := 0 to 3 do
+    begin
+      MInicial[a,b] := 0; RotX[a,b] := 0; RotY[a,b] := 0; Temp[a,b] := 0;
+    end;
+    MInicial[a,a] := 1; RotX[a,a] := 1; RotY[a,a] := 1; Temp[a,a] := 1;
+  end;
+
+  // --- CONFIGURAÇÃO DA VISÃO INICIAL (LATERAL) ---
+  // Rotação no Eixo X (20 graus) - Para ver um pouco "de cima"
+  angX := 20 * Pi / 180;
+  RotX[1,1] := cos(angX); RotX[1,2] := sin(angX);
+  RotX[2,1] := -sin(angX); RotX[2,2] := cos(angX);
+
+  // Rotação no Eixo Y (-45 graus) - Para ver "de quina/lateral"
+  angY := -45 * Pi / 180;
+  RotY[0,0] := cos(angY); RotY[0,2] := -sin(angY);
+  RotY[2,0] := sin(angY); RotY[2,2] := cos(angY);
+
+  // Combina as rotações: MInicial = RotX * RotY
+  // (Multiplica RotX por RotY e guarda em MInicial)
+  MultiplicarMatrizes4x4(RotY, RotX, MInicial);
+
+  // Desenha a cena com essa rotação inicial (tanto estático quanto rampa)
+  desenharPratica1(MInicial, MInicial);
+
+  // Limpeza de memória
+  SetLength(MInicial, 0, 0);
+  SetLength(RotX, 0, 0);
+  SetLength(RotY, 0, 0);
+  SetLength(Temp, 0, 0);
+end;
+
+function InBounds(v, minv, maxv: Integer): Boolean;
+begin
+  Result := (v >= minv) and (v <= maxv);
+end;
+   procedure TForm1.DesenharCenaIluminada(Modelo: Integer);
 var
   PosObservador, PosLuz: TVector3D;
-  Ia, Il: TCorVector;
-  MatEsfera: TMaterial;
-  K_Atenuacao: Double;
+  Ia, Il, Ib: TCorVector;
+  Ka, Kd, Ks: TCorVector;
+  specularN, K_Atenuacao: Double;
 
   a, b, RaioEsfera, step: Double;
-  P, N, L, S, H: TVector3D; // H = halfway vector (Blinn-Phong)
+  P, N, L, S, H: TVector3D;
+
   px, py: Integer;
-  canvasCenterX, canvasCenterY: Integer;
+  cx, cy: Integer;
+  x, y: Integer;
+
   Intensidade, I_Amb, I_Dif, I_Esp: TCorVector;
   cosTheta, cosNH: Double;
-  DistLuz, atenuacao: Double;
+  distLuz, fatorAtenuacao: Double;
 
-  // função auxiliar local para limitar componentes entre 0 e 1
-  function ClampColor(const C: TCorVector): TCorVector;
+  function Clamp(const C: TCorVector): TCorVector;
   begin
-    Result.x := C.x;
-    Result.y := C.y;
-    Result.z := C.z;
-    if Result.x < 0 then Result.x := 0;
-    if Result.y < 0 then Result.y := 0;
-    if Result.z < 0 then Result.z := 0;
-    if Result.x > 1 then Result.x := 1;
-    if Result.y > 1 then Result.y := 1;
-    if Result.z > 1 then Result.z := 1;
+    Result.x := EnsureRange(C.x, 0, 1);
+    Result.y := EnsureRange(C.y, 0, 1);
+    Result.z := EnsureRange(C.z, 0, 1);
+  end;
+
+  function MakeColor(r, g, b: Double): TCorVector;
+  begin
+    Result.x := r;
+    Result.y := g;
+    Result.z := b;
   end;
 
 begin
-  // --- Preparação ---
-  LimparZBuffer;
-  canvasCenterX := Image1.Width div 2;
-  canvasCenterY := Image1.Height div 2;
+  LimparZBuffer;  // Deve preencher com um valor bem pequeno (ex: -999999)
 
-  // --- Configuração da Cena ---
-  PosObservador.x := 100;
-  PosObservador.y := 0;
-  PosObservador.z := 100;
+  cx := Image1.Width div 2;
+  cy := Image1.Height div 2;
 
-  PosLuz.x := 0;
-  PosLuz.y := 200;
-  PosLuz.z := 100;
+  // --------------------------
+  // POSIÇÕES DA CENA
+  // --------------------------
+  PosObservador.x := 0;   PosObservador.y := 0;   PosObservador.z := 100;
+  PosLuz.x := 100;        PosLuz.y := 0;          PosLuz.z := 100;
 
-  // Luz ambiente
-  Ia.x := 0.3; Ia.y := 0.3; Ia.z := 0.3;
+  // Luzes
+  Ia := MakeColor(0, 0, 1);
+  Ib := MakeColor(1,0,0);
+  Il := MakeColor(1.0, 1.0, 1.0);
 
-  // Luz pontual
-  Il.x := 1.0; Il.y := 1.0; Il.z := 1.0;
+  // Constantes fornecidas pelo usuário
+  Ka := MakeColor(StrToFloat(Edit3.Text),
+                  StrToFloat(Edit3.Text),
+                  StrToFloat(Edit3.Text));
 
-  // Atenuação: valor por você ajustável. 0.01..0.1 costuma dar bom resultado.
-  // A fórmula usada abaixo será: atenuacao = 1 / (1 + K_Atenuacao * DistLuz)
-  K_Atenuacao := 0.01; // experimente 0.01, 0.02 ou 0.05 — evite valores grandes
+  K_Atenuacao := StrToFloat(Edit4.Text);
 
-  // --- Material da Esfera ---
-  MatEsfera.Ka.x := 0.7; MatEsfera.Ka.y := 0.7; MatEsfera.Ka.z := 0.8;
-  MatEsfera.Kd.x := 0.3; MatEsfera.Kd.y := 0.7; MatEsfera.Kd.z := 0.7;
-  MatEsfera.Ks.x := 1.0; MatEsfera.Ks.y := 1.0; MatEsfera.Ks.z := 1.0;
-  MatEsfera.n := 16;
+  // Materiais
+  Kd := MakeColor(0.3, 0.3, 0.3);  // difusa
+  Ks := MakeColor(0.8, 0.8, 0.8);  // especular
+  specularN := 16;
 
-  // --- Desenhar a Esfera ---
-  RaioEsfera := 50.0;
+  // ------------------------------
+  // PLANO
+  // ------------------------------
 
-  // ATENÇÃO: step muito pequeno (ex: 0.001) vai demorar MUITO.
-  // Recomendo step := 0.02..0.05 para testes, ou trocar para rasterização por X/Y.
+  for x := -100 to 100 do
+    for y := -100 to 100 do
+    begin
+      P.x := x;
+      P.y := y;
+      P.z := -200;  // bem atrás da esfera
+
+      N.x := 0; N.y := 0; N.z := 1;
+
+      L := Normalizar(Subtrair(PosLuz, P));
+      S := Normalizar(Subtrair(PosObservador, P));
+
+      cosTheta := Max(0, ProdutoEscalar(N, L));
+
+      I_Amb := MultiplicarComponente(Ia, Ka);
+      I_Dif := MultiplicarEscalar(
+                  MultiplicarComponente(Il, MakeColor(0.7, 0.7, 0.7)),
+                  cosTheta);
+
+      Intensidade := Adicionar(I_Amb, I_Dif);
+
+      if Modelo = 2 then
+      begin
+        H := Normalizar(Adicionar(L, S));
+        cosNH := Max(0, ProdutoEscalar(N, H));
+
+        I_Esp := MultiplicarEscalar(
+                   MultiplicarComponente(Il, MakeColor(0.4,0.4,0.4)),
+                   Power(cosNH, specularN));
+
+        distLuz := Magnitude(Subtrair(PosLuz, P));
+        fatorAtenuacao := 1 / (1 + K_Atenuacao * distLuz);
+
+        Intensidade := Adicionar(
+                         I_Amb,
+                         MultiplicarEscalar(
+                           Adicionar(I_Dif, I_Esp),
+                           fatorAtenuacao));
+      end;
+
+      Intensidade := Clamp(Intensidade);
+
+      px := cx + x;
+      py := cy - y;
+
+      if (px >= 0) and (px < Image1.Width) and
+         (py >= 0) and (py < Image1.Height) then
+      begin
+        // Z-BUFFER CORRIGIDO: maior Z = mais perto
+        if P.z > ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := P.z;
+          Image1.Canvas.Pixels[px, py] := CalcularCor(Intensidade);
+        end;
+      end;
+    end;
+
+  // ------------------------------
+  // ESFERA (Centro 0,0,0)
+  // ------------------------------
+  RaioEsfera := 50;
   step := 0.02;
 
   a := -Pi/2;
@@ -1157,67 +1373,49 @@ begin
     b := -Pi;
     while b <= Pi do
     begin
-      // Coordenadas da esfera (parametrização)
-      P.x := RaioEsfera * cos(a) * cos(b);
-      P.y := RaioEsfera * cos(a) * sin(b);
-      P.z := RaioEsfera * sin(a);
+      P.x := RaioEsfera * Cos(a) * Cos(b);
+      P.y := RaioEsfera * Cos(a) * Sin(b);
+      P.z := RaioEsfera * Sin(a);
 
-      // Normal (no caso de esfera centrada na origem, é a própria P normalizada)
       N := Normalizar(P);
 
-      // Vetor da Luz (direção do ponto para a fonte de luz)
       L := Normalizar(Subtrair(PosLuz, P));
-
-      // Vetor direção do observador
       S := Normalizar(Subtrair(PosObservador, P));
 
-      // --- Componente Ambiente (sem atenuação normalmente) ---
-      I_Amb := MultiplicarComponente(Ia, MatEsfera.Ka);
+      I_Amb := MultiplicarComponente(Ib, Ka);
 
-      // --- Componente Difusa (Lambert) ---
-      cosTheta := ProdutoEscalar(N, L);
-      if cosTheta < 0 then cosTheta := 0;
+      cosTheta := Max(0, ProdutoEscalar(N, L));
+      I_Dif := MultiplicarEscalar(MultiplicarComponente(Il, Kd), cosTheta);
 
-      I_Dif := MultiplicarComponente(Il, MatEsfera.Kd);
-      I_Dif := MultiplicarEscalar(I_Dif, cosTheta);
-
-      // Começamos com ambiente + difuso (ambiente não atenuado)
       Intensidade := Adicionar(I_Amb, I_Dif);
 
-      // --- Modelo 2: Phong / Blinn-Phong ---
       if Modelo = 2 then
       begin
-        // Distância até a luz (para atenuação)
-        DistLuz := Magnitude(Subtrair(PosLuz, P));
-
-        // Atenuação (linear suave): 1 / (1 + k * d)
-        atenuacao := 1.0 / (1.0 + K_Atenuacao * DistLuz);
-
-        // Usando Blinn-Phong: H = normalize(L + S)
         H := Normalizar(Adicionar(L, S));
+        cosNH := Max(0, ProdutoEscalar(N, H));
 
-        // cos between normal and half-vector
-        cosNH := ProdutoEscalar(N, H);
-        if cosNH < 0 then cosNH := 0;
+        I_Esp := MultiplicarEscalar(MultiplicarComponente(Il, Ks),
+                                     Power(cosNH, specularN));
 
-        // componente especular
-        I_Esp := MultiplicarComponente(Il, MatEsfera.Ks);
-        I_Esp := MultiplicarEscalar(I_Esp, Power(cosNH, MatEsfera.n));
+        distLuz := Magnitude(Subtrair(PosLuz, P));
+        fatorAtenuacao := 1 / (1 + K_Atenuacao * distLuz);
 
-        // Aplicar atenuação às componentes provenientes da fonte (difusa+especular)
-        Intensidade := Adicionar(I_Amb, MultiplicarEscalar(Adicionar(I_Dif, I_Esp), atenuacao));
+        Intensidade := Adicionar(
+                         I_Amb,
+                         MultiplicarEscalar(
+                           Adicionar(I_Dif, I_Esp), fatorAtenuacao));
       end;
 
-      // --- Garantir valores dentro do intervalo [0,1] antes de converter para cor ---
-      Intensidade := ClampColor(Intensidade);
+      Intensidade := Clamp(Intensidade);
 
-      // --- Desenhar Pixel (projeção ortogonal usada por você) ---
-      px := canvasCenterX + Round(P.x);
-      py := canvasCenterY - Round(P.y);
+      px := cx + Round(P.x);
+      py := cy - Round(P.y);
 
-      if (px >= 0) and (px < Image1.Width) and (py >= 0) and (py < Image1.Height) then
+      if (px >= 0) and (px < Image1.Width) and
+         (py >= 0) and (py < Image1.Height) then
       begin
-        if P.z < ZBuffer[py, px] then
+        // usando o novo Z-buffer (maior Z = mais perto)
+        if P.z > ZBuffer[py, px] then
         begin
           ZBuffer[py, px] := P.z;
           Image1.Canvas.Pixels[px, py] := CalcularCor(Intensidade);
@@ -1228,7 +1426,12 @@ begin
     end;
     a := a + step;
   end;
+
 end;
+
+
+
+
 
 
 
@@ -1237,19 +1440,11 @@ end;
 // ****** INÍCIO DO NOVO BLOCO DE FUNÇÕES AUXILIARES ******
 
 procedure TForm1.LimparZBuffer;
-var
-  x_idx, y_idx, ImgWidth, ImgHeight: Integer;
+var i,j: Integer;
 begin
-  ImgWidth := Image1.Width;
-  ImgHeight := Image1.Height;
-
-  Image1.Canvas.Brush.Color := clBlack;
-  Image1.Canvas.FillRect(0, 0, ImgWidth, ImgHeight);
-
-  SetLength(ZBuffer, ImgHeight, ImgWidth);
-  for y_idx := 0 to ImgHeight - 1 do
-    for x_idx := 0 to ImgWidth - 1 do
-      ZBuffer[y_idx, x_idx] := Math.Infinity;
+  for i := 0 to Image1.Height-1 do
+    for j := 0 to Image1.Width-1 do
+      ZBuffer[i,j] := -99999999;   // OU -999999999
 end;
 
 function TForm1.Vetor(P1, P2: TVector3D): TVector3D;
