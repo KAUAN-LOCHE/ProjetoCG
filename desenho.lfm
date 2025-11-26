@@ -390,8 +390,8 @@ object Form1: TForm1
     Left = 1399
     Height = 20
     Top = 584
-    Width = 72
-    Caption = 'Constantes'
+    Width = 159
+    Caption = 'Constantes - Iluminação'
   end
   object MainMenu1: TMainMenu
     Left = 240
@@ -476,7 +476,7 @@ object Form1: TForm1
         end
       end
       object MenuItem25: TMenuItem
-        Caption = 'MenuItem25'
+        Caption = 'Rampa'
         OnClick = MenuItem25Click
       end
     end

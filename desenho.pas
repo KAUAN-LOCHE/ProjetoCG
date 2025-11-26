@@ -2609,6 +2609,7 @@ begin
   // Habilita os botões de transformação
   flagOpcao8 := True;
   RotacionarCasinha.Checked := False; // <-- Define o CheckBox
+  objetos.Checked := True;
 
   // Limpa os RadioButtons para desenhar o estado inicial
   RadioButton1.Checked := False;
@@ -2636,109 +2637,83 @@ procedure TForm1.desenharZBufferObjetos(const MTransform: TMatriz);
 var
   MC, MResultado: TMatriz;
   ImgWidth, ImgHeight, canvasCenterX, canvasCenterY: Integer;
-  x_idx, y_idx, z_idx, px, py: Integer;
-  x_obj, y_obj, z_obj: Double;
-  a_obj, b_obj: Double;
+  px, py: Integer;
+  x_val, y_val, z_obj: Double; // Usar Double para loops suaves
+  t_val, a_obj, b_obj: Double;
   z_prof: Double;
-   t_obj:Integer;
+
+  // Controle de densidade (Resolução)
+  Passo: Double;
 
   // Vértices das superfícies bilineares
   V: array[1..10] of TVector3D;
 
+  // Auxiliares para cálculo de cor
+  function GetCorProfundidade(CorBase: TColor; Z: Double): TColor;
+  var
+    R, G, B: Byte;
+    Fator: Double;
+  begin
+    // Simples "Depth Cueing": Objetos mais profundos (Z menor/maior) mudam de brilho
+    // Ajuste esses valores min/max conforme sua cena
+    // Exemplo: Z varia de 0 a 100 na média.
+    Fator := (Z + 50) / 200.0;
+    if Fator < 0.2 then Fator := 0.2;
+    if Fator > 1.0 then Fator := 1.0;
+
+    // Extrai RGB da cor base
+    R := CorBase and $FF;
+    G := (CorBase shr 8) and $FF;
+    B := (CorBase shr 16) and $FF;
+
+    // Escurece conforme a profundidade (ou inverte a lógica se preferir)
+    R := Round(R * Fator);
+    G := Round(G * Fator);
+    B := Round(B * Fator);
+
+    Result := RGBToColor(R, G, B);
+  end;
+
 begin
   // ----------------------------------------
-  // INICIALIZAÇÃO E Z-BUFFER
+  // INICIALIZAÇÃO
   // ----------------------------------------
   ImgWidth := Image1.Width;
   ImgHeight := Image1.Height;
   canvasCenterX := ImgWidth div 2;
   canvasCenterY := ImgHeight div 2;
 
+  // Define a resolução do desenho (quanto menor, mais sólido e mais lento)
+  Passo := 0.5;
+
   Image1.Canvas.Brush.Color := clBlack;
   Image1.Canvas.FillRect(Rect(0, 0, ImgWidth, ImgHeight));
 
+  // Inicializa Z-Buffer
   SetLength(ZBuffer, ImgHeight, ImgWidth);
-  for y_idx := 0 to ImgHeight - 1 do
-    for x_idx := 0 to ImgWidth - 1 do
-      ZBuffer[y_idx, x_idx] := Math.Infinity;
+  for py := 0 to ImgHeight - 1 do
+    for px := 0 to ImgWidth - 1 do
+      ZBuffer[py, px] := Math.Infinity;
 
   SetLength(MC, 1, 4);
   SetLength(MResultado, 1, 4);
   MC[0,3] := 1;
 
-  // ============================================================
-  // HELPER LOCAL: desenha direto com Z-Buffer (substitui Plot3D)
-  // ============================================================
-  // MC[0,0], MC[0,1], MC[0,2] devem ser preenchidos antes
-  // usa MTransform que vem da casinha/rotação
-  // ============================================================
-
   // ------------------------------------------------
-  // OBJETO 1 – AZUL
+  // OBJETO 1 – AZUL (Paraboloide)
+  // z = x^2 + y
+  // x in [10, 30], y in [20, 40]
   // ------------------------------------------------
-  for x_idx := 10 to 30 do
-    for y_idx := 20 to 40 do
-    begin
-      z_obj := x_idx*x_idx + y_idx;
-
-      MC[0,0] := x_idx;
-      MC[0,1] := y_idx;
-      MC[0,2] := z_obj;
-
-      MultiplicarMatrizes(MC, MTransform, MResultado);
-
-      px := canvasCenterX + Round(MResultado[0,0]);
-      py := canvasCenterY - Round(MResultado[0,1]);
-      z_prof := MResultado[0,2];
-
-      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
-        if z_prof < ZBuffer[py, px] then
-        begin
-          ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clBlue;
-        end;
-    end;
-
-  // ------------------------------------------------
-  // OBJETO 2 – VERMELHO
-  // ------------------------------------------------
-  for x_idx := 50 to 100 do
-    for y_idx := 30 to 80 do
-    begin
-      z_obj := 3*x_idx - 2*y_idx + 5;
-
-      MC[0,0] := x_idx;
-      MC[0,1] := y_idx;
-      MC[0,2] := z_obj;
-
-      MultiplicarMatrizes(MC, MTransform, MResultado);
-
-      px := canvasCenterX + Round(MResultado[0,0]);
-      py := canvasCenterY - Round(MResultado[0,1]);
-      z_prof := MResultado[0,2];
-
-      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
-        if z_prof < ZBuffer[py, px] then
-        begin
-          ZBuffer[py, px] := z_prof;
-          Image1.Canvas.Pixels[px, py] := clRed;
-        end;
-    end;
-
-  // ------------------------------------------------
-  // OBJETO 3 – AMARELO (helicoidal)
-  // ------------------------------------------------
-  for t_obj := 0 to 50 do
+  x_val := 10;
+  while x_val <= 30 do
   begin
-    a_obj := 0;
-    while a_obj <= 2*pi do
+    y_val := 20;
+    while y_val <= 40 do
     begin
-      x_obj := 30 + cos(a_obj)*t_obj;
-      y_obj := 50 + sin(a_obj)*t_obj;
-      z_obj := 10 + t_obj;
+      z_obj := (x_val * x_val) + y_val;
 
-      MC[0,0] := x_obj;
-      MC[0,1] := y_obj;
+      MC[0,0] := x_val;
+      MC[0,1] := y_val;
       MC[0,2] := z_obj;
 
       MultiplicarMatrizes(MC, MTransform, MResultado);
@@ -2747,32 +2722,33 @@ begin
       py := canvasCenterY - Round(MResultado[0,1]);
       z_prof := MResultado[0,2];
 
-      if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
-        if z_prof < ZBuffer[py,px] then
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+        if z_prof < ZBuffer[py, px] then
         begin
-          ZBuffer[py,px] := z_prof;
-          Image1.Canvas.Pixels[px,py] := clYellow;
+          ZBuffer[py, px] := z_prof;
+          // Usa cor base Azul com variação de profundidade
+          Image1.Canvas.Pixels[px, py] := GetCorProfundidade(clBlue, z_obj);
         end;
-
-      a_obj := a_obj + 0.05;
+      y_val := y_val + Passo; // Incremento decimal
     end;
+    x_val := x_val + Passo;
   end;
 
   // ------------------------------------------------
-  // OBJETO 4 – VERDE (esfera paramétrica deslocada)
+  // OBJETO 2 – VERMELHO (Plano)
+  // z = 3x - 2y + 5
+  // x in [50, 100], y in [30, 80]
   // ------------------------------------------------
-  a_obj := 0;
-  while a_obj <= 2*pi do
+  x_val := 50;
+  while x_val <= 100 do
   begin
-    b_obj := 0;
-    while b_obj <= 2*pi do
+    y_val := 30;
+    while y_val <= 80 do
     begin
-      x_obj := 100 + 30*cos(a_obj)*cos(b_obj);
-      y_obj := 50 + 30*cos(a_obj)*sin(b_obj);
-      z_obj := 20 + 30*sin(a_obj);
+      z_obj := (3 * x_val) - (2 * y_val) + 5;
 
-      MC[0,0] := x_obj;
-      MC[0,1] := y_obj;
+      MC[0,0] := x_val;
+      MC[0,1] := y_val;
       MC[0,2] := z_obj;
 
       MultiplicarMatrizes(MC, MTransform, MResultado);
@@ -2781,161 +2757,215 @@ begin
       py := canvasCenterY - Round(MResultado[0,1]);
       z_prof := MResultado[0,2];
 
-      if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
-        if z_prof < ZBuffer[py,px] then
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+        if z_prof < ZBuffer[py, px] then
         begin
-          ZBuffer[py,px] := z_prof;
-          Image1.Canvas.Pixels[px,py] := clGreen;
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := GetCorProfundidade(clRed, z_obj);
         end;
+      y_val := y_val + Passo;
+    end;
+    x_val := x_val + Passo;
+  end;
 
+  // ------------------------------------------------
+  // OBJETO 3 – AMARELO (Helicoidal)
+  // t in [0, 50], a in [0, 2pi]
+  // ------------------------------------------------
+  t_val := 0;
+  while t_val <= 50 do
+  begin
+    a_obj := 0;
+    while a_obj <= 2 * pi do
+    begin
+      // x = 30 + cos(a)*t
+      // y = 50 + sin(a)*t
+      // z = 10 + t
+      MC[0,0] := 30 + cos(a_obj) * t_val;
+      MC[0,1] := 50 + sin(a_obj) * t_val;
+      MC[0,2] := 10 + t_val; // z_obj
+
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+
+      px := canvasCenterX + Round(MResultado[0,0]);
+      py := canvasCenterY - Round(MResultado[0,1]);
+      z_prof := MResultado[0,2];
+
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          Image1.Canvas.Pixels[px, py] := GetCorProfundidade(clYellow, MC[0,2]);
+        end;
+      a_obj := a_obj + 0.05; // Passo angular
+    end;
+    t_val := t_val + 0.5; // Passo do raio/altura (reduzido para fechar buracos)
+  end;
+
+  // ------------------------------------------------
+  // OBJETO 4 – VERDE (Esfera paramétrica)
+  // ------------------------------------------------
+  a_obj := 0;
+  while a_obj <= 2 * pi do
+  begin
+    b_obj := 0;
+    while b_obj <= 2 * pi do
+    begin
+      // x = 100 + 30*cos(a)*cos(b)
+      // y = 50 + 30*cos(a)*sen(b)
+      // z = 20 + 30*sen(a) -- (Notei que sua fórmula original usava z dependendo de 'a' apenas, o que é correto para esfericas)
+
+      z_obj := 20 + 30 * sin(a_obj);
+
+      MC[0,0] := 100 + 30 * cos(a_obj) * cos(b_obj);
+      MC[0,1] := 50 + 30 * cos(a_obj) * sin(b_obj);
+      MC[0,2] := z_obj;
+
+      MultiplicarMatrizes(MC, MTransform, MResultado);
+
+      px := canvasCenterX + Round(MResultado[0,0]);
+      py := canvasCenterY - Round(MResultado[0,1]);
+      z_prof := MResultado[0,2];
+
+      if (px >= 0) and (px < ImgWidth) and (py >= 0) and (py < ImgHeight) then
+        if z_prof < ZBuffer[py, px] then
+        begin
+          ZBuffer[py, px] := z_prof;
+          // Usa z_prof aqui para dar efeito de esfera 3D
+          Image1.Canvas.Pixels[px, py] := GetCorProfundidade(clGreen, z_prof);
+        end;
       b_obj := b_obj + 0.05;
     end;
     a_obj := a_obj + 0.05;
   end;
 
   // ------------------------------------------------
-  // OBJETO 5 – CUBO BRANCO (6 FACES) — SEM PROCEDURE
+  // OBJETO 5 – CUBO BRANCO (Preenchido Sólido)
+  // Usando loops 'while' para garantir preenchimento
   // ------------------------------------------------
 
-  // Face z = 20 (topo)
-  for x_idx := -20 to 20 do
-    for y_idx := -20 to 20 do
+  // FACE SUPERIOR (z=20) e INFERIOR (z=-20)
+  x_val := -20;
+  while x_val <= 20 do
+  begin
+    y_val := -20;
+    while y_val <= 20 do
     begin
-      MC[0,0] := x_idx;
-      MC[0,1] := y_idx;
-      MC[0,2] := 20;
+       // Topo
+       MC[0,0] := x_val; MC[0,1] := y_val; MC[0,2] := 20;
+       MultiplicarMatrizes(MC, MTransform, MResultado);
+       px := canvasCenterX + Round(MResultado[0,0]);
+       py := canvasCenterY - Round(MResultado[0,1]);
+       z_prof := MResultado[0,2];
+       if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
+         if z_prof < ZBuffer[py,px] then begin
+           ZBuffer[py,px] := z_prof;
+           Image1.Canvas.Pixels[px,py] := clWhite; // Topo claro
+         end;
 
-      MultiplicarMatrizes(MC, MTransform, MResultado);
-      px := canvasCenterX + Round(MResultado[0,0]);
-      py := canvasCenterY - Round(MResultado[0,1]);
-      z_prof := MResultado[0,2];
+       // Base
+       MC[0,0] := x_val; MC[0,1] := y_val; MC[0,2] := -20;
+       MultiplicarMatrizes(MC, MTransform, MResultado);
+       px := canvasCenterX + Round(MResultado[0,0]);
+       py := canvasCenterY - Round(MResultado[0,1]);
+       z_prof := MResultado[0,2];
+       if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
+         if z_prof < ZBuffer[py,px] then begin
+           ZBuffer[py,px] := z_prof;
+           Image1.Canvas.Pixels[px,py] := clGray; // Base mais escura
+         end;
 
-      if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
-        if z_prof < ZBuffer[py,px] then
-        begin
-          ZBuffer[py,px] := z_prof;
-          Image1.Canvas.Pixels[px,py] := clWhite;
-        end;
+       y_val := y_val + Passo;
     end;
+    x_val := x_val + Passo;
+  end;
 
-  // Face z = -20
-  for x_idx := -20 to 20 do
-    for y_idx := -20 to 20 do
+  // FACES LATERAIS (y=20, y=-20)
+  x_val := -20;
+  while x_val <= 20 do
+  begin
+    z_obj := -20; // Reutilizando variavel como iterador Z
+    while z_obj <= 20 do
     begin
-      MC[0,0] := x_idx;
-      MC[0,1] := y_idx;
-      MC[0,2] := -20;
+       // Frente
+       MC[0,0] := x_val; MC[0,1] := 20; MC[0,2] := z_obj;
+       MultiplicarMatrizes(MC, MTransform, MResultado);
+       px := canvasCenterX + Round(MResultado[0,0]);
+       py := canvasCenterY - Round(MResultado[0,1]);
+       z_prof := MResultado[0,2];
+       if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
+         if z_prof < ZBuffer[py,px] then begin
+           ZBuffer[py,px] := z_prof;
+           Image1.Canvas.Pixels[px,py] := clLtGray;
+         end;
 
-      MultiplicarMatrizes(MC, MTransform, MResultado);
-      px := canvasCenterX + Round(MResultado[0,0]);
-      py := canvasCenterY - Round(MResultado[0,1]);
-      z_prof := MResultado[0,2];
+       // Trás
+       MC[0,0] := x_val; MC[0,1] := -20; MC[0,2] := z_obj;
+       MultiplicarMatrizes(MC, MTransform, MResultado);
+       px := canvasCenterX + Round(MResultado[0,0]);
+       py := canvasCenterY - Round(MResultado[0,1]);
+       z_prof := MResultado[0,2];
+       if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
+         if z_prof < ZBuffer[py,px] then begin
+           ZBuffer[py,px] := z_prof;
+           Image1.Canvas.Pixels[px,py] := clDkGray;
+         end;
 
-      if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
-        if z_prof < ZBuffer[py,px] then
-        begin
-          ZBuffer[py,px] := z_prof;
-          Image1.Canvas.Pixels[px,py] := clWhite;
-        end;
+       z_obj := z_obj + Passo;
     end;
+    x_val := x_val + Passo;
+  end;
 
-  // Face y = 20
-  for x_idx := -20 to 20 do
-    for z_idx := -20 to 20 do
+  // FACES LATERAIS (x=20, x=-20)
+  y_val := -20;
+  while y_val <= 20 do
+  begin
+    z_obj := -20;
+    while z_obj <= 20 do
     begin
-      MC[0,0] := x_idx;
-      MC[0,1] := 20;
-      MC[0,2] := z_idx;
+       // Direita
+       MC[0,0] := 20; MC[0,1] := y_val; MC[0,2] := z_obj;
+       MultiplicarMatrizes(MC, MTransform, MResultado);
+       px := canvasCenterX + Round(MResultado[0,0]);
+       py := canvasCenterY - Round(MResultado[0,1]);
+       z_prof := MResultado[0,2];
+       if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
+         if z_prof < ZBuffer[py,px] then begin
+           ZBuffer[py,px] := z_prof;
+           Image1.Canvas.Pixels[px,py] := clSilver;
+         end;
 
-      MultiplicarMatrizes(MC, MTransform, MResultado);
-      px := canvasCenterX + Round(MResultado[0,0]);
-      py := canvasCenterY - Round(MResultado[0,1]);
-      z_prof := MResultado[0,2];
+       // Esquerda
+       MC[0,0] := -20; MC[0,1] := y_val; MC[0,2] := z_obj;
+       MultiplicarMatrizes(MC, MTransform, MResultado);
+       px := canvasCenterX + Round(MResultado[0,0]);
+       py := canvasCenterY - Round(MResultado[0,1]);
+       z_prof := MResultado[0,2];
+       if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
+         if z_prof < ZBuffer[py,px] then begin
+           ZBuffer[py,px] := z_prof;
+           Image1.Canvas.Pixels[px,py] := clGray;
+         end;
 
-      if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
-        if z_prof < ZBuffer[py,px] then
-        begin
-          ZBuffer[py,px] := z_prof;
-          Image1.Canvas.Pixels[px,py] := clWhite;
-        end;
+       z_obj := z_obj + Passo;
     end;
-
-  // Face y = -20
-  for x_idx := -20 to 20 do
-    for z_idx := -20 to 20 do
-    begin
-      MC[0,0] := x_idx;
-      MC[0,1] := -20;
-      MC[0,2] := z_idx;
-
-      MultiplicarMatrizes(MC, MTransform, MResultado);
-      px := canvasCenterX + Round(MResultado[0,0]);
-      py := canvasCenterY - Round(MResultado[0,1]);
-      z_prof := MResultado[0,2];
-
-      if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
-        if z_prof < ZBuffer[py,px] then
-        begin
-          ZBuffer[py,px] := z_prof;
-          Image1.Canvas.Pixels[px,py] := clWhite;
-        end;
-    end;
-
-  // Face x = 20
-  for y_idx := -20 to 20 do
-    for z_idx := -20 to 20 do
-    begin
-      MC[0,0] := 20;
-      MC[0,1] := y_idx;
-      MC[0,2] := z_idx;
-
-      MultiplicarMatrizes(MC, MTransform, MResultado);
-      px := canvasCenterX + Round(MResultado[0,0]);
-      py := canvasCenterY - Round(MResultado[0,1]);
-      z_prof := MResultado[0,2];
-
-      if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
-        if z_prof < ZBuffer[py,px] then
-        begin
-          ZBuffer[py,px] := z_prof;
-          Image1.Canvas.Pixels[px,py] := clWhite;
-        end;
-    end;
-
-  // Face x = -20
-  for y_idx := -20 to 20 do
-    for z_idx := -20 to 20 do
-    begin
-      MC[0,0] := -20;
-      MC[0,1] := y_idx;
-      MC[0,2] := z_idx;
-
-      MultiplicarMatrizes(MC, MTransform, MResultado);
-      px := canvasCenterX + Round(MResultado[0,0]);
-      py := canvasCenterY - Round(MResultado[0,1]);
-      z_prof := MResultado[0,2];
-
-      if (px>=0) and (px<ImgWidth) and (py>=0) and (py<ImgHeight) then
-        if z_prof < ZBuffer[py,px] then
-        begin
-          ZBuffer[py,px] := z_prof;
-          Image1.Canvas.Pixels[px,py] := clWhite;
-        end;
-    end;
+    y_val := y_val + Passo;
+  end;
 
   // ----------------------------------------------------------
-  // SUPERFÍCIES BILINEARES — AULA 19 (com vértices corretos)
+  // SUPERFÍCIES BILINEARES
   // ----------------------------------------------------------
-     V[1].x := 0;   V[1].y := 0;   V[1].z := 0;
-V[2].x := 0;   V[2].y := 0;   V[2].z := 80;
-V[3].x := 0;   V[3].y := 40;  V[3].z := 80;
-V[4].x := 20;  V[4].y := 0;   V[4].z := 0;
-V[5].x := 20;  V[5].y := 0;   V[5].z := 80;
-V[6].x := 20;  V[6].y := 40;  V[6].z := 80;
-V[7].x := 100; V[7].y := 0;   V[7].z := 0;
-V[8].x := 100; V[8].y := 40;  V[8].z := 0;
-V[9].x := 120; V[9].y := 0;   V[9].z := 0;
-V[10].x := 120; V[10].y := 40; V[10].z := 0;
+  // (Mantive seus vértices originais)
+  V[1].x := 0;   V[1].y := 0;   V[1].z := 0;
+  V[2].x := 0;   V[2].y := 0;   V[2].z := 80;
+  V[3].x := 0;   V[3].y := 40;  V[3].z := 80;
+  V[4].x := 20;  V[4].y := 0;   V[4].z := 0;
+  V[5].x := 20;  V[5].y := 0;   V[5].z := 80;
+  V[6].x := 20;  V[6].y := 40;  V[6].z := 80;
+  V[7].x := 100; V[7].y := 0;   V[7].z := 0;
+  V[8].x := 100; V[8].y := 40;  V[8].z := 0;
+  V[9].x := 120; V[9].y := 0;   V[9].z := 0;
+  V[10].x := 120;V[10].y := 40; V[10].z := 0;
 
   DesenharSuperficieBilinear(V[1], V[2], V[4], V[5], clGreen, MTransform);
   DesenharSuperficieBilinear(V[2], V[3], V[5], V[6], clGreen, MTransform);
@@ -2944,9 +2974,7 @@ V[10].x := 120; V[10].y := 40; V[10].z := 0;
   DesenharSuperficieBilinear(V[3], V[6], V[8], V[2], clBlue,  MTransform);
   DesenharSuperficieBilinear(V[7], V[8], V[10],V[9], clMaroon,MTransform);
 
-  // ----------------------------------------
-  // ENCERRAMENTO
-  // ----------------------------------------
+  // Limpeza
   SetLength(MC,0,0);
   SetLength(MResultado,0,0);
 end;
